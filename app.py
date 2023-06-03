@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
-from flask import Flask, render_template, request, redirect, url_for
-import requests
+from flask import Flask, render_template, request, jsonify
+import openai
+
+import os
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        question = request.form.get('question')
-        response = requests.get('https://chat.openai.com', params={'question': question})
-        return render_template('home.html', response=response.text)
-    return render_template('home.html')
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-if __name__ == '__main__':
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    question = request.json['question']
+    response = openai.ChatCompletion.create(
+      model="gpt-3.5-turbo",
+      messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": question}
+        ],
+    )
+    return jsonify(answer=response.choices[0].message['content'])
+
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080, debug=True)
 
