@@ -1,17 +1,29 @@
-document.getElementById('submit-button').addEventListener('click', function() {
-    let question = document.getElementById('question-input').value;
+$("#ask-button").click(function() {
+    // Show loading message and disable button
+    $("#loading-message").show();
+    $("#ask-button").prop("disabled", true);
 
-    fetch('/ask', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
+    $.ajax({
+        url: "/ask",
+        type: "post",
+        data: JSON.stringify({question: $("#question-input").val()}),
+        contentType: "application/json",
+        success: function(response) {
+            if (response.error) {
+                $("#answer").html("<p class='error'>" + response.error + "</p>");
+            } else {
+                $("#answer").html("<p class='answer'>" + response.answer + "</p>");
+            }
+            // Hide loading message and enable button
+            $("#loading-message").hide();
+            $("#ask-button").prop("disabled", false);
         },
-        body: JSON.stringify({
-            'question': question
-        })
-    }).then(response => response.json())
-    .then(data => {
-        document.getElementById('answer').textContent = data.answer;
+        error: function(jqXHR, textStatus, errorThrown) {
+            $("#answer").html("<p class='error'>Error: " + textStatus + "</p>");
+            // Hide loading message and enable button
+            $("#loading-message").hide();
+            $("#ask-button").prop("disabled", false);
+        }
     });
 });
 
