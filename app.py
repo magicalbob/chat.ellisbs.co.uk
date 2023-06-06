@@ -15,6 +15,7 @@ def home():
 @app.route('/ask', methods=['POST'])
 def ask():
     question = request.json['question']
+    print(f"Received question: {question}")
     retries = 5
     for i in range(retries):
         try:
@@ -25,7 +26,9 @@ def ask():
                     {"role": "user", "content": question}
                 ],
             )
-            return jsonify(answer=response.choices[0].message['content'])
+            answer = response.choices[0].message['content']
+            print(f"API response: {answer}")
+            return jsonify(answer=answer)
         except openai.error.RateLimitError:
             if i < retries - 1:  # if it's not the last try
                 time.sleep(10)  # wait for 10 seconds before trying again
