@@ -1,3 +1,5 @@
+var converter = new showdown.Converter();
+
 $("#ask-button").click(function() {
     // Show loading message and disable button
     $("#loading-message").show();
@@ -12,7 +14,8 @@ $("#ask-button").click(function() {
             if (response.error) {
                 $("#answer").html("<p class='error'>" + response.error + "</p>");
             } else {
-                $("#answer").html("<p class='answer'>" + response.answer + "</p>");
+                var html = converter.makeHtml(response.answer);
+                $("#answer").html(html);
             }
             // Hide loading message and enable button
             $("#loading-message").hide();
