@@ -18,6 +18,14 @@
     #question-input {
         width: 100%;
     }
+
+    #chat-history {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
     </style>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -99,9 +107,8 @@
 </head>
 <body>
     <h1>Chat with GPT-3</h1>
-    <div id="chat-history"></div>
     <input id="question-input" type="text" placeholder="Ask a question...">
     <button id="ask-button">Ask</button>
+    <div id="chat-history"></div>
 </body>
-</html>
 
