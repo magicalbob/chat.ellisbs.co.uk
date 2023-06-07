@@ -28,12 +28,13 @@ def ask():
             )
             answer = response.choices[0].message['content']
             print(f"API response: {answer}")
-            return jsonify(answer=answer)
+            return jsonify(question=question, answer=answer)
         except openai.error.RateLimitError:
             if i < retries - 1:  # if it's not the last try
                 time.sleep(10)  # wait for 10 seconds before trying again
             else:
                 return jsonify(error="API is overloaded, please try again later."), 503
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080, debug=True)
