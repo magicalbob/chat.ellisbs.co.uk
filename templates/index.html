@@ -49,5 +49,16 @@
     <button id="ask-button" disabled>Ask</button>
     <div id="loading-message" style="display: none;">Processing...</div>
     <div id="answer"></div>
+
+    <!-- Display chat history -->
+    <h2>Chat History</h2>
+    <ul>
+        {% for entry in chat_history %}
+        <li>
+            <strong>Question:</strong> {{ entry.question }}<br>
+            <strong>Answer:</strong> {{ entry.answer }}<br>
+            <strong>Timestamp:</strong> {{ entry.timestamp }}
+        </li>
+        {% endfor %}
+    </ul>
 </body>
-</html>
