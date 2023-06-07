@@ -1,0 +1,7 @@
+<ul id="chat-history">
+  {% for entry in chat_history %}
+    <li>{{ entry.question }}</li>
+    <li>{{ entry.answer }}</li>
+    <li>{{ entry.timestamp }}</li>
+  {% endfor %}
+</ul>
