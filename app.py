@@ -22,13 +22,12 @@ def create_table():
 def insert_question_answer(question, answer):
     conn = sqlite3.connect('chat_history.db')
     db_cursor = conn.cursor()
-    db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
+    try:
+        db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
+    except:
+        create_table()
     conn.commit()
     conn.close()
-
-@app.before_first_request
-def initialize():
-    create_table()
 
 @app.route('/')
 def home():
@@ -80,5 +79,6 @@ def chat_history():
     return chat_history_html
 
 if __name__ == "__main__":
+    create_table()
     app.run(host='0.0.0.0', port=8080, debug=True)
 
