@@ -26,6 +26,7 @@ def insert_question_answer(question, answer):
         db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
     except:
         create_table()
+        db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
     conn.commit()
     conn.close()
 
