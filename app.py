@@ -26,6 +26,10 @@ def insert_question_answer(question, answer):
     conn.commit()
     conn.close()
 
+@app.before_first_request
+def initialize():
+    create_table()
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -76,6 +80,5 @@ def chat_history():
     return chat_history_html
 
 if __name__ == "__main__":
-    create_table()
     app.run(host='0.0.0.0', port=8080, debug=True)
 
