@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+import unittest
+from unittest.mock import patch, MagicMock
+from flask import Flask
+
+import app
+
+class TestApp(unittest.TestCase):
+    def setUp(self):
+        self.app = app.app.test_client()
+
+    def test_home_route(self):
+        response = self.app.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'<h1>Chat with GPT-3</h1>', response.data)  # Update the expected HTML content
+        self.assertIn(b'<input id="question-input" type="text" placeholder="Ask a question...">', response.data)  # Update other expected HTML elements
+
+    @patch('app.openai.ChatCompletion.create')
+    def test_ask_route(self, mock_chat_completion_create):
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message = {'content': 'Answer'}  # Update the message structure
+        mock_chat_completion_create.return_value = mock_response
+
+        response = self.app.post('/ask', json={'question': 'Test question'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Test question', response.data)
+        self.assertIn(b'Answer', response.data)
+
+
+    def test_chat_history_route(self):
+        response = self.app.get('/chat_history')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'<p><strong>', response.data)
+        self.assertIn(b'<p>', response.data)
+        self.assertIn(b'<hr>', response.data)
+
+if __name__ == '__main__':
+    unittest.main()
+
