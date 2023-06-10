@@ -6,7 +6,8 @@ test_job:
   tags:
     - linux
   script:
-    - apt-get update -y||true
+    - chmod -R 777 /var/lib/apt/
+    - apt-get update -y
     - apt-get install -y python3
     - pip install -r requirements.txt 
     - ./app_unittest.py
