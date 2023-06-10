@@ -6,8 +6,8 @@ test_job:
   tags:
     - linux
   script:
-    - chmod -R 777 /var/lib/apt/||true
-    - apt-get update -y||true
-    - apt-get install -y python3||true
-    - pip install -r requirements.txt||true
+    - python3 -m venv ~/.py3flask
+    - . ~/.py3flask/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
     - ./app_unittest.py
