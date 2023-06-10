@@ -1,0 +1,9 @@
+stages:
+  - test
+
+test_job:
+  stage: test
+  tags:
+    - linux
+  script:
+    - ./app_unittest.py
