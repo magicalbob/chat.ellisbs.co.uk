@@ -6,8 +6,8 @@ test_job:
   tags:
     - linux
   script:
-    - chmod -R 777 /var/lib/apt/
-    - apt-get update -y
-    - apt-get install -y python3
-    - pip install -r requirements.txt 
+    - chmod -R 777 /var/lib/apt/||true
+    - apt-get update -y||true
+    - apt-get install -y python3||true
+    - pip install -r requirements.txt||true
     - ./app_unittest.py
