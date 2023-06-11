@@ -4,11 +4,13 @@ import openai
 import os
 import sqlite3
 
+DB_NAME = 'chat_history.db'
+
 app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_table():
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect(DB_NAME)
     db_cursor = conn.cursor()
     db_cursor.execute('''CREATE TABLE IF NOT EXISTS chat_history (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +22,7 @@ def create_table():
     conn.close()
 
 def insert_question_answer(question, answer):
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect(DB_NAME)
     db_cursor = conn.cursor()
     try:
         db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
@@ -63,7 +65,7 @@ def ask():
 
 @app.route('/chat_history', methods=['GET'])
 def chat_history():
-    conn = sqlite3.connect('chat_history.db')
+    conn = sqlite3.connect(DB_NAME)
     db_cursor = conn.cursor()
     db_cursor.execute("SELECT question, answer, timestamp FROM chat_history ORDER BY id DESC")
     records = db_cursor.fetchall()
