@@ -22,5 +22,4 @@ scan_job:
     SONAR_TOKEN: sqp_1220f7cfc2bd3dfdffbcb884da7e8f13f70dde38
     SONAR_HOST_URL: https://sonarqube.ellisbs.co.uk
   script:
-    - find / 2>/dev/null
-    - /opt/sonar-scanner/bin/sonar-scanner
+    - /home/gitlab-runner/sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner
