@@ -8,7 +8,7 @@ test_job:
     - linux
   script:
     - docker build -t local:test .
-    - docker run -ti -v ${PWD}:/opt/pwd local:test 
+    - docker run -v ${PWD}:/opt/pwd local:test 
 
 scan_job:
   stage: scan
