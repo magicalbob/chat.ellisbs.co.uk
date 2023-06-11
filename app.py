@@ -26,11 +26,12 @@ def insert_question_answer(question, answer):
     db_cursor = conn.cursor()
     try:
         db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
-    except:
+    except sqlite3.OperationalError:
         create_table()
         db_cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
     conn.commit()
     conn.close()
+
 
 @app.route('/')
 def home():
