@@ -1,5 +1,6 @@
 stages:
-  - test
+#  - test
+ - scan
 
 test_job:
   stage: test
@@ -11,3 +12,9 @@ test_job:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - ./app_unittest.py
+
+scan_job:
+  stage: scan
+  tags:
+    - linux
+  image: sonarsource/sonar-scanner-cli
