@@ -16,7 +16,12 @@ class TestApp(unittest.TestCase):
         self.assertIn(b'<input id="question-input" type="text" placeholder="Ask a question...">', response.data)  # Update other expected HTML elements
 
     @patch('app.openai.ChatCompletion.create')
-    def test_ask_route(self, mock_chat_completion_create):
+    @patch('app.sqlite3.connect')  # Stub the database connection
+    def test_ask_route(self, mock_sqlite3_connect, mock_chat_completion_create):
+        mock_db = MagicMock()
+        mock_db.cursor.return_value.execute.return_value = None
+        mock_sqlite3_connect.return_value = mock_db
+
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message = {'content': 'Answer'}  # Update the message structure
@@ -27,8 +32,13 @@ class TestApp(unittest.TestCase):
         self.assertIn(b'Test question', response.data)
         self.assertIn(b'Answer', response.data)
 
+    @patch('app.sqlite3.connect')  # Stub the database connection
+    def test_chat_history_route(self, mock_sqlite3_connect):
+        mock_db = MagicMock()
+        mock_db.cursor.return_value.fetchall.return_value = [('Test question', 'Answer', '2023-06-03 12:34:56')]
 
-    def test_chat_history_route(self):
+        mock_sqlite3_connect.return_value = mock_db
+
         response = self.app.get('/chat_history')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'<p><strong>', response.data)
