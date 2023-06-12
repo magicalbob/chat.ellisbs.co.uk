@@ -16,3 +16,4 @@ openai
 urllib3
 openai
 openapi
+coverage
