@@ -20,5 +20,8 @@ USER appuser
 # Set the working directory to the new user's home directory
 WORKDIR /home/appuser
 
+# Install coverage
+RUN pip install coverage
+
 # Run the script as the new user
 CMD sh -c ./testscript.sh
