@@ -14,7 +14,7 @@ $("#ask-button").click(function() {
             if (response.error) {
                 $("#answer").html("<p class='error'>" + response.error + "</p>");
             } else {
-                var html = converter.makeHtml(response.answer);
+                let html = converter.makeHtml(response.answer); // Use let instead of var
                 $("#answer").html(html);
             }
             // Hide loading message and enable button
