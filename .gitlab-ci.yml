@@ -1,13 +1,6 @@
 stages:
-  - prepare
  - test
  - scan
-
-prepare_workspace:
-  stage: prepare
-  script:
-    - rm -rf *
-  when: always
 
 test_job:
   stage: test
