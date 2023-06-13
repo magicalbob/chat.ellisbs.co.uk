@@ -5,6 +5,8 @@ stages:
 
 prepare_workspace:
   stage: prepare
+  tags:
+    - linux
   script:
     - rm -rf *
   when: always
