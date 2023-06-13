@@ -7,11 +7,7 @@ test_job:
   tags:
     - linux
   script:
-    - rm -rf __pycache__
-    - touch coverage.xml
-    - chmod 777 coverage.xml
-    - docker build -t local:testchat .
-    - docker run -v ${PWD}:/opt/pwd local:testchat
+    - sh test_job.sh
   artifacts:
     paths:
       - coverage.xml
@@ -23,8 +19,7 @@ scan_job:
   tags:
     - linux
   script:
-    - rm -rf __pycache__
-    - docker run -v "$(pwd):/usr/src" sonarsource/sonar-scanner-cli
+    - sh scan_job.sh
   dependencies:
     - test_job
   variables:
