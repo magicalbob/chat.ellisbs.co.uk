@@ -1,5 +1,5 @@
 stages:
- - prepare
+  - prepare
  - test
  - scan
 
