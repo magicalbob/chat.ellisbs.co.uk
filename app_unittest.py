@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from flask import Flask
 
 import app
+import sqlite3
 
 class TestApp(unittest.TestCase):
     def setUp(self):
