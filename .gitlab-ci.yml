@@ -9,7 +9,7 @@ test_job:
   script:
     - rm -rf __pycache__
     - docker build -t local:testchat .
-    - docker run -v ${PWD}:/opt/pwd local:testchat
+    - docker run --user "$(id -u):$(id -g)" -v ${PWD}:/opt/pwd local:testchat
   artifacts:
     paths:
       - coverage.xml
@@ -22,7 +22,7 @@ scan_job:
     - linux
   script:
     - rm -rf __pycache__
-    - docker run -e SONAR_HOST_URL="https://sonarqube.ellisbs.co.uk" -e SONAR_LOGIN="sqp_3e15c2713c0427caeea973d7001e2346de5529a4" -v "$(pwd):/usr/src" sonarsource/sonar-scanner-cli
+    - docker run --user "$(id -u):$(id -g)" -v "$(pwd):/usr/src" sonarsource/sonar-scanner-cli
   dependencies:
     - test_job
   variables:
