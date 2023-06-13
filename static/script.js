@@ -1,4 +1,4 @@
-var converter = new showdown.Converter();
+let converter = new showdown.Converter();
 
 $("#ask-button").click(function() {
     // Show loading message and disable button
