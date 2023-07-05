@@ -68,7 +68,7 @@ def ask():
 def chat_history():
     conn = sqlite3.connect(DB_NAME)
     db_cursor = conn.cursor()
-    db_cursor.execute("SELECT question, answer, timestamp FROM chat_history ORDER BY id DESC")
+    db_cursor.execute("SELECT question, answer, timestamp FROM chat_history ORDER BY id ASC")
     records = db_cursor.fetchall()
     conn.close()
 
