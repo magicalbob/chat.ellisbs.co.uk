@@ -41,6 +41,7 @@ def home():
 def ask():
     question = request.json['question']
     print(f"Received question: {question}")
+    actual_question=f"{question}. Answer the question including HTML tags to iprove formatting."
     retries = 5
     for i in range(retries):
         try:
@@ -48,7 +49,7 @@ def ask():
             model="gpt-3.5-turbo",
             messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": question}
+                    {"role": "user", "content": actual_question}
                 ],
             )
             answer = response.choices[0].message['content']
@@ -72,13 +73,24 @@ def chat_history():
     records = db_cursor.fetchall()
     conn.close()
 
-    chat_history_html = ""
+    chat_history_html = "<html><body>"  # Start the HTML document
+
     for record in records:
         question, answer, timestamp = record
-        chat_history_html += f"<p><strong>{question}</strong></p>"
+        chat_history_html += "<p><strong>Question:</strong></p>"
+        chat_history_html += f"<p>{question}</p>"
+        chat_history_html += "<p><strong>Answer:</strong></p>"
+
+        # Replace "**" with <strong> tags for bold formatting
+        while "**" in answer:
+            answer = answer.replace("**", "<strong>", 1)
+            answer = answer.replace("**", "</strong>", 1)
+
         chat_history_html += f"<p>{answer}</p>"
-        chat_history_html += f"<p>{timestamp}</p>"
+        chat_history_html += f"<p><strong>Timestamp:</strong> {timestamp}</p>"
         chat_history_html += "<hr>"
+
+    chat_history_html += "</body></html>"  # End the HTML document
 
     return chat_history_html
 
