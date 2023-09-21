@@ -3,14 +3,14 @@ import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
 
-import app
-import sqlite3
+# Import your app from app.py
+from app import app, create_table, insert_question_answer
 
 TEST_QUESTION = 'Test question'
 
 class TestApp(unittest.TestCase):
     def setUp(self):
-        self.app = app.app.test_client()
+        self.app = app.test_client()
 
     def test_home_route(self):
         response = self.app.get('/')
@@ -38,7 +38,6 @@ class TestApp(unittest.TestCase):
         mock_sqlite3_connect.side_effect = sqlite3.OperationalError
         response = self.app.post('/ask', json={'question': TEST_QUESTION})
         self.assertEqual(response.status_code, 500)
-
 
     @patch('app.sqlite3.connect')  # Stub the database connection
     def test_chat_history_route(self, mock_sqlite3_connect):
