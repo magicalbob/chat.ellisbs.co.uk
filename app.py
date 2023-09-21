@@ -72,15 +72,21 @@ def chat_history():
     records = db_cursor.fetchall()
     conn.close()
 
-    chat_history_html = ""
+    chat_history_html = "<html><body>"  # Start the HTML document
+
     for record in records:
         question, answer, timestamp = record
-        chat_history_html += f"<p><strong>{question}</strong></p>"
+        chat_history_html += "<p><strong>Question:</strong></p>"
+        chat_history_html += f"<p>{question}</p>"
+        chat_history_html += "<p><strong>Answer:</strong></p>"
         chat_history_html += f"<p>{answer}</p>"
-        chat_history_html += f"<p>{timestamp}</p>"
+        chat_history_html += f"<p><strong>Timestamp:</strong> {timestamp}</p>"
         chat_history_html += "<hr>"
 
+    chat_history_html += "</body></html>"  # End the HTML document
+
     return chat_history_html
+
 
 if __name__ == "__main__":
     create_table()

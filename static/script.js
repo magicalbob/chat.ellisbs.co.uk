@@ -6,7 +6,7 @@ $("#ask-button").click(function() {
     $("#ask-button").prop("disabled", true);
 
     $.ajax({
-        url: "/ask",
+        url: "/chat/ask",
         type: "post",
         data: JSON.stringify({question: $("#question-input").val()}),
         contentType: "application/json",

@@ -37,7 +37,7 @@
     // Function to update the chat history
     function updateChatHistory() {
         $.ajax({
-            url: "/chat_history",
+            url: "/chat/chat_history",
             type: "get",
             success: function(response) {
                 // Update the chat history section
@@ -64,7 +64,7 @@
             $("#ask-button").prop("disabled", true);
 
             $.ajax({
-                url: "/ask",
+                url: "/chat/ask",
                 type: "post",
                 data: JSON.stringify({ question: question }),
                 contentType: "application/json",
