@@ -41,7 +41,7 @@ def home():
 def ask():
     question = request.json['question']
     print(f"Received question: {question}")
-    actual_question=f"{question}. Answer the question including HTML tags to iprove formatting."
+    actual_question=f"{question}. Answer the question including HTML tags to improve formatting."
     retries = 5
     for i in range(retries):
         try:
