@@ -47,7 +47,7 @@ def ask():
     for i in range(retries):
         try:
             response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-0125",
             messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": actual_question}
