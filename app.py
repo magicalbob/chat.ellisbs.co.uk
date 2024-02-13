@@ -38,6 +38,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/ask', methods=['POST'])
+@app.route('/chat/ask', methods=['POST'])
 def ask():
     question = request.json['question']
     print(f"Received question: {question}")
@@ -46,7 +47,7 @@ def ask():
     for i in range(retries):
         try:
             response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-0125",
             messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": actual_question}
@@ -65,7 +66,8 @@ def ask():
             else:
                 return jsonify(error="API is overloaded, please try again later."), 503
 
-@app.route('/chat_history', methods=['GET'])
+@app.route('/chat_history')
+@app.route('/chat/chat_history')
 def chat_history():
     conn = sqlite3.connect(DB_NAME)
     db_cursor = conn.cursor()
@@ -97,4 +99,3 @@ def chat_history():
 if __name__ == "__main__":
     create_table()
     app.run(host='0.0.0.0', port=8080, debug=True)
-
