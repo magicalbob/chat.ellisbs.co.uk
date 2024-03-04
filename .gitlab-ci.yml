@@ -2,6 +2,9 @@ stages:
  - test
  - scan
 
+variables:
+  SONAR_SCANNER_VERSION: 5.0.1.3006
+
 test_job:
   stage: test
   tags:
@@ -25,8 +28,15 @@ scan_job:
     - linux
   script:
     - sudo apt-get update
-    - sudo apt-get install openjdk-17-jre -y
-    - sh scan_job.sh
+    - sudo rm -rf /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/debconf/*.dat /var/cache/apt/archives/lock
+    - sudo dpkg --configure -a
+    - sudo apt-get install -f
+    - sudo apt-get install -y unzip openjdk-17-jre
+    - pushd ~
+    - curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip
+    - unzip -n /tmp/sonar-scanner.zip
+    - popd
+    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner
   dependencies:
     - test_job
   variables:
