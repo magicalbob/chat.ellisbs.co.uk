@@ -17,6 +17,8 @@
 
     #question-input {
         width: 100%;
+        height: 100px; /* Adjust height as needed */
+        resize: vertical; /* Allow vertical resizing */
     }
 
     #chat-history {
@@ -92,9 +94,11 @@
         // Add event listener to the "Ask" button
         $("#ask-button").click(askQuestion);
 
-        // Add event listener to the question input field
+        // Add event listener to the question input field (textarea)
         $("#question-input").keypress(function(event) {
-            if (event.which === 13) { // Enter key
+            if (event.which === 13 && event.shiftKey) { // Enter key with shift for new line
+                return true;
+            } else if (event.which === 13) { // Enter key without shift
                 askQuestion();
                 return false;
             }
@@ -107,8 +111,8 @@
 </head>
 <body>
     <h1>Chat with GPT-3</h1>
-    <input id="question-input" type="text" placeholder="Ask a question...">
+    <textarea id="question-input" placeholder="Ask a question..." rows="4"></textarea>
     <button id="ask-button">Ask</button>
     <div id="chat-history"></div>
 </body>
-
+</html>
