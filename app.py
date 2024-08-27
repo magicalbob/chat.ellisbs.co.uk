@@ -3,10 +3,19 @@ from flask import Flask, render_template, request, jsonify
 import openai
 import os
 import sqlite3
+from datetime import datetime
+from flask_wtf import CSRFProtect
 
 DB_NAME = 'chat_history.db'
 
 app = Flask(__name__)
+
+# Flask-WTF requires an encryption key - the string can be anything
+app.config['SECRET_KEY'] = os.urandom(24)
+
+# Enable CSRF protection globally for the app
+csrf = CSRFProtect(app)
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_table():
