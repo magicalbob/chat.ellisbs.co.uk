@@ -98,4 +98,8 @@ def chat_history():
 
 if __name__ == "__main__":
     create_table()
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    if os.getenv("USE_DEBUG", False) == "True":
+        USE_DEBUG = True
+    else:
+        USE_DEBUG = False
+    app.run(host = '0.0.0.0', port = 8080, debug = USE_DEBUG)
