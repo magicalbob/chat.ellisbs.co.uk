@@ -1,5 +1,4 @@
-chat.ellisbs.co.uk
-==================
+#chat.ellisbs.co.uk
 
 A Flask-based web application that serves as a relay for asking questions using OpenAI's API (chat.openai.com). This project provides a simple interface where users can enter a question, and it will fetch the answer using the OpenAI API. Additionally, it stores chat history in a local SQLite database, allowing users to review previously asked questions and answers.
 
