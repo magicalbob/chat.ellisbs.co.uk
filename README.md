@@ -55,11 +55,11 @@ A Flask-based web application that serves as a relay for asking questions using 
 
 ### app.py
 
-- **Flask App*:
+- **Flask App**:
   Handles HTTP requests and serves the frontend templates (index.html). It includes routes for asking questions and retrieving chat history.
 SQLite Integration: Stores all questions and answers in a local database (chat_history.db). The create_table function ensures that the database schema is initialized when the app starts.
 
-- **OpenAI API*: The /ask route handles communication with OpenAI’s API, sending the user's question and receiving the answer. The question and response are saved to the database.
+- **OpenAI API**: The /ask route handles communication with OpenAI’s API, sending the user's question and receiving the answer. The question and response are saved to the database.
 Frontend (index.html)
 
 - **Question Input**:
