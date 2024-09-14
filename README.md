@@ -164,12 +164,17 @@ This project is licensed under the MIT License.
 
 ## Future Enhancements
 
-- **Add user authentication to store chat history per user.**
+- **User Authentication**:
+  Add in app user authentication to store chat history per user. User access control is currently done by `nginx` reverse proxy and is not visible to the app.
 
-- **Implement a more sophisticated retry mechanism with better error handling.**
+- **Retry mechanism**:
+  Implement a more sophisticated retry mechanism with better error handling.
 
-- **Use a different database backend (e.g., PostgreSQL) for scalability.**
+- **Database backend**:
+  Use a different database backend (e.g., PostgreSQL) for scalability.
 
-- **Add support for rich text formatting and images in OpenAI responses.**
+- **Rich text formatting**:
+  Add support for rich text formatting and images in OpenAI responses.
 
-- **Add feature to allow re-selection of previous questions for asking.**
+- **Re-asking Questions**:
+  Add feature to allow re-selection of previous questions for asking.
