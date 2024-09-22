@@ -46,14 +46,14 @@ def ask():
     retries = 5
     for i in range(retries):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": actual_question}
                 ],
             )
-            answer = response.choices[0].message['content']
+            answer = response.choices[0].message.content
             print(f"API response: {answer}")
 
             # Insert the question and answer into the chat history
