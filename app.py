@@ -102,4 +102,4 @@ if __name__ == "__main__":
         USE_DEBUG = True
     else:
         USE_DEBUG = False
-    app.run(host = '0.0.0.0', port = 8080, debug = USE_DEBUG)
+    app.run(host = '0.0.0.0', port = 48080, debug = USE_DEBUG)

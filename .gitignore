@@ -2,3 +2,4 @@ __pycache__
 .coverage
 .scannerwork
 coverage.xml
+chat_history.db
