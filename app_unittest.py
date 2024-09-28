@@ -15,7 +15,7 @@ class TestApp(unittest.TestCase):
     def test_home_route(self):
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'<h1>Chat with GPT-3</h1>', response.data)  # Update the expected HTML content
+        self.assertIn(b'<h1>Chat with ChatGPT</h1>', response.data)  # Update the expected HTML content
         self.assertIn(b'<input id="question-input" type="text" placeholder="Ask a question...">', response.data)  # Update other expected HTML elements
 
     @patch('app.openai.ChatCompletion.create')

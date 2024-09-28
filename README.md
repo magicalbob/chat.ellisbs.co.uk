@@ -28,7 +28,7 @@ A Flask-based web application that serves as a relay for asking questions using 
   A lightweight Python web framework used to build the backend and handle routing and API interactions.
 
 - **OpenAI API**:
-  The application communicates with OpenAI's GPT model (gpt-3.5-turbo) to retrieve answers to user queries.
+  The application communicates with OpenAI's GPT model to retrieve answers to user queries.
 
 - **SQLite**:
   The chat history (questions and answers) is stored locally in an SQLite database.
