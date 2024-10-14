@@ -1,3 +1,35 @@
+    <style>
+    body {
+        text-align: left; /* Ensures all text is left-aligned */
+    }
+
+    h1 {
+        text-align: left; /* Left align the heading */
+    }
+
+    .answer {
+        color: blue;
+    }
+
+    .error {
+        color: red;
+    }
+
+    #question-input {
+        width: 100%;
+        height: 100px; /* Adjust height as needed */
+        resize: vertical; /* Allow vertical resizing */
+    }
+
+    #chat-history {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    </style>
+
 <ul id="chat-history">
   {% for entry in chat_history %}
     <li>{{ entry.question }}</li>
