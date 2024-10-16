@@ -36,7 +36,7 @@ scan_job:
     - curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip
     - unzip -n /tmp/sonar-scanner.zip
     - popd
-    - export SONAR_TOKEN=$(echo -n "c3F1X2ZhNjQxNzk1ZjdiY2FlYzhkZjlmZTRhN2M4OTQwZjA5OTJjMWYwYWM="|base64 --decode) && ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN
+    - export SONAR_TOKEN=$(echo -n "c3FhXzk5Njc0NmRhMGZiYWNmNTc4ZWNhNTg5NWZmZmM3YWUwMjY3ZGM1ZjkK"|base64 --decode) && ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN
   dependencies:
     - test_job
   variables:
