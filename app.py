@@ -114,7 +114,14 @@ def get_openai_response(question):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    if OPENAI_API_KEY:
+        title = "Chat with ChatGPT"
+    elif CLAUDE_API_KEY:
+        title = "Chat with Claude"
+    else:
+        title = "Chat with No Model Available"
+
+    return render_template('index.html', title=title)
 
 @app.route('/ask', methods=['POST'])
 @app.route('/chat/ask', methods=['POST'])
