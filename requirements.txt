@@ -2,3 +2,4 @@ flask
 jsonify
 openai
 requests
+anthropic
