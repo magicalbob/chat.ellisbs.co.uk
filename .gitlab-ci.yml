@@ -6,6 +6,7 @@ variables:
   SONAR_SCANNER_VERSION: 5.0.1.3006
 
 test_job:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
   stage: test
   tags:
     - linux
@@ -23,6 +24,7 @@ test_job:
     GIT_STRATEGY: clone
 
 scan_job:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
   stage: scan
   tags:
     - linux
