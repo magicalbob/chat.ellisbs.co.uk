@@ -1,5 +1,5 @@
 pip install -r requirements.txt
 ./app_unittest.py
-~/.local/bin/coverage run -m unittest app_unittest.py
-~/.local/bin/coverage xml
+coverage run -m unittest app_unittest.py
+coverage xml
 rm -rf __pycache__
