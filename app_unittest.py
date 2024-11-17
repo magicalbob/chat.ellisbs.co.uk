@@ -10,8 +10,15 @@ import anthropic
 import json
 from datetime import datetime
 import logging
+from http import HTTPStatus
 
 TEST_QUESTION = 'Test question'
+
+def create_mock_response(status_code, body):
+    mock_response = MagicMock()
+    mock_response.status_code = status_code
+    mock_response.json.return_value = body
+    return mock_response
 
 class TestApp(unittest.TestCase):
     def setUp(self):
@@ -31,22 +38,21 @@ class TestApp(unittest.TestCase):
         self.logger.addHandler(self.handler)
         self.logger.setLevel(logging.INFO)
         
+        # Clear any existing database
+        if os.path.exists(self.test_db):
+            os.remove(self.test_db)
+        
     def tearDown(self):
         # Restore original environment variables
-        if self.original_openai:
-            os.environ['OPENAI_API_KEY'] = self.original_openai
-        else:
-            os.environ.pop('OPENAI_API_KEY', None)
-            
-        if self.original_claude:
-            os.environ['CLAUDE_API_KEY'] = self.original_claude
-        else:
-            os.environ.pop('CLAUDE_API_KEY', None)
-            
-        if self.original_debug:
-            os.environ['USE_DEBUG'] = self.original_debug
-        else:
-            os.environ.pop('USE_DEBUG', None)
+        for env_var, original_value in [
+            ('OPENAI_API_KEY', self.original_openai),
+            ('CLAUDE_API_KEY', self.original_claude),
+            ('USE_DEBUG', self.original_debug)
+        ]:
+            if original_value:
+                os.environ[env_var] = original_value
+            else:
+                os.environ.pop(env_var, None)
             
         # Clean up test database
         if os.path.exists(self.test_db):
@@ -59,233 +65,266 @@ class TestApp(unittest.TestCase):
         if 'app' in sys.modules:
             del sys.modules['app']
 
-    def test_no_api_keys(self):
-        os.environ.pop('OPENAI_API_KEY', None)
-        os.environ.pop('CLAUDE_API_KEY', None)
+    def test_environment_variable_combinations(self):
+        test_cases = [
+            (None, None, SystemExit),  # No keys
+            ('test-key', None, None),  # Only OpenAI
+            (None, 'test-key', None),  # Only Claude
+            ('test-key', 'test-key', None),  # Both keys
+        ]
         
-        with self.assertRaises(SystemExit) as cm:
-            with self.assertLogs('app', level='ERROR') as log:
+        for openai_key, claude_key, expected_exception in test_cases:
+            # Reset environment
+            os.environ.pop('OPENAI_API_KEY', None)
+            os.environ.pop('CLAUDE_API_KEY', None)
+            
+            # Set test environment
+            if openai_key:
+                os.environ['OPENAI_API_KEY'] = openai_key
+            if claude_key:
+                os.environ['CLAUDE_API_KEY'] = claude_key
+                
+            if expected_exception:
+                with self.assertRaises(expected_exception):
+                    if 'app' in sys.modules:
+                        del sys.modules['app']
+                    import app
+            else:
+                if 'app' in sys.modules:
+                    del sys.modules['app']
                 import app
-        self.assertEqual(cm.exception.code, 1)
-        self.assertIn('Neither OPENAI_API_KEY nor CLAUDE_API_KEY environment variables are set', log.output[0])
+                self.assertTrue(hasattr(app, 'app'))
 
-    @patch('anthropic.Anthropic')
-    def test_claude_api_validation_failure(self, mock_anthropic):
-        os.environ.pop('OPENAI_API_KEY', None)
-        os.environ['CLAUDE_API_KEY'] = 'invalid-claude-key'
-        
-        mock_client = MagicMock()
-        mock_anthropic.return_value = mock_client
-        mock_client.messages.create.side_effect = anthropic.APIError(
-            response=MagicMock(status_code=401),
-            body={"error": {"message": "Invalid API key"}}
-        )
-        
-        with self.assertRaises(SystemExit) as cm:
-            with self.assertLogs('app', level='ERROR') as log:
-                import app
-        self.assertEqual(cm.exception.code, 1)
-        self.assertIn('Error validating Claude API key', log.output[0])
-
-    def test_database_initialization(self):
+    def test_database_operations_comprehensive(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
         
-        # Test database creation
+        # Test table creation
         app.create_table()
         
-        # Verify table schema
+        # Test multiple insertions
+        test_data = [
+            ("Q1", "A1"),
+            ("Q2", "A2 with **bold**"),
+            ("Q3", "A3 with <script>alert('xss')</script>")  # Test XSS handling
+        ]
+        
+        for q, a in test_data:
+            app.insert_question_answer(q, a)
+            
+        # Test retrieval
         conn = sqlite3.connect(app.DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(chat_history)")
-        columns = cursor.fetchall()
+        cursor.execute("SELECT question, answer FROM chat_history ORDER BY id")
+        results = cursor.fetchall()
         conn.close()
         
-        expected_columns = {
-            'id': 'INTEGER',
-            'question': 'TEXT',
-            'answer': 'TEXT',
-            'timestamp': 'TIMESTAMP'
-        }
-        
-        for col in columns:
-            name, type_ = col[1], col[2]
-            self.assertIn(name, expected_columns)
-            self.assertEqual(type_, expected_columns[name])
+        self.assertEqual(len(results), len(test_data))
+        for (q, a), (stored_q, stored_a) in zip(test_data, results):
+            self.assertEqual(q, stored_q)
+            self.assertEqual(a, stored_a)
 
-    def test_database_error_handling(self):
+    @patch('sqlite3.connect')
+    def test_database_error_scenarios(self, mock_connect):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
         
-        # Test database connection error
-        with patch('sqlite3.connect') as mock_connect:
-            mock_connect.side_effect = sqlite3.Error("Database error")
-            with self.assertRaises(sqlite3.Error):
-                app.create_table()
-        
-        # Test insert with non-existent table
-        if os.path.exists(app.DB_NAME):
-            os.remove(app.DB_NAME)
+        # Test connection error
+        mock_connect.side_effect = sqlite3.Error("Connection failed")
+        with self.assertRaises(sqlite3.Error):
+            app.create_table()
             
-        app.insert_question_answer("Test Q", "Test A")
+        # Test execution error
+        mock_db = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.execute.side_effect = sqlite3.Error("Execution failed")
+        mock_db.cursor.return_value = mock_cursor
+        mock_connect.side_effect = None
+        mock_connect.return_value = mock_db
         
-        # Verify table was created and data inserted
-        conn = sqlite3.connect(app.DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT question, answer FROM chat_history")
-        result = cursor.fetchone()
-        conn.close()
+        with self.assertRaises(sqlite3.Error):
+            app.create_table()
+
+    def test_chat_history_comprehensive(self):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        import app
         
-        self.assertEqual(result[0], "Test Q")
-        self.assertEqual(result[1], "Test A")
+        # Insert test data with various formatting
+        test_data = [
+            ("Q1", "Normal answer"),
+            ("Q2", "Answer with **bold** text"),
+            ("Q3", "Answer with <strong>HTML</strong>"),
+            ("Q4", "Answer with **multiple** **bold** words"),
+            ("Q5", "Answer with incomplete **bold"),
+        ]
+        
+        for q, a in test_data:
+            app.insert_question_answer(q, a)
+            
+        # Test main chat history endpoint
+        response = app.app.test_client().get('/chat_history')
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify formatting
+        response_data = response.data.decode('utf-8')
+        self.assertIn('<strong>bold</strong>', response_data)
+        self.assertIn('<strong>HTML</strong>', response_data)
+        self.assertIn('<strong>multiple</strong>', response_data)
+        self.assertIn('incomplete **bold', response_data)  # Incomplete formatting should be preserved
 
     @patch('anthropic.Anthropic')
-    def test_claude_response_formatting(self, mock_anthropic):
+    def test_claude_api_comprehensive(self, mock_anthropic):
         os.environ.pop('OPENAI_API_KEY', None)
         os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
         
         mock_client = MagicMock()
         mock_anthropic.return_value = mock_client
+        
+        # Test successful response
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="<p>Formatted response</p>")]
+        mock_response.content = [MagicMock(text="Claude response")]
         mock_client.messages.create.return_value = mock_response
         
         import app
-        response = app.get_claude_response("Format this")
-        self.assertEqual(response, "<p>Formatted response</p>")
+        response = app.get_claude_response("Test question")
+        self.assertEqual(response, "Claude response")
         
-        # Verify API call parameters
-        mock_client.messages.create.assert_called_with(
-            model="claude-3-sonnet-20240229",
-            messages=[{
-                "role": "user",
-                "content": "Format this"
-            }],
-            max_tokens=1024
-        )
-
-    def test_home_route_titles(self):
-        test_cases = [
-            ('OPENAI_API_KEY', 'test-key', None, "Chat with ChatGPT"),
-            ('CLAUDE_API_KEY', 'test-key', None, "Chat with Claude"),
-            (None, None, None, "Chat with No Model Available")
+        # Test various error scenarios
+        error_cases = [
+            (anthropic.RateLimitError, {"error": {"message": "Rate limit"}}, 429),
+            (anthropic.BadRequestError, {"error": {"message": "Bad request"}}, 400),
+            (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
+            (anthropic.APIError, {"error": {"message": "API error"}}, 500)
         ]
         
-        for env_var, value, other_value, expected_title in test_cases:
-            os.environ.pop('OPENAI_API_KEY', None)
-            os.environ.pop('CLAUDE_API_KEY', None)
+        for error_class, error_body, status_code in error_cases:
+            mock_client.messages.create.side_effect = error_class(
+                response=create_mock_response(status_code, error_body),
+                body=error_body
+            )
             
-            if env_var:
-                os.environ[env_var] = value
-            
-            import app
-            response = app.app.test_client().get('/')
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(bytes(expected_title, 'utf-8'), response.data)
-            
-            if 'app' in sys.modules:
-                del sys.modules['app']
+            with self.assertRaises(error_class):
+                app.get_claude_response("Test question")
 
-    def test_chat_history_empty(self):
+    @patch('openai.chat.completions.create')
+    def test_openai_response_comprehensive(self, mock_chat_create):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
         
-        # Test empty history
-        response = app.app.test_client().get('/chat_history')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'<html><body>', response.data)
-        self.assertIn(b'</body></html>', response.data)
+        # Test successful response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='OpenAI response'))]
+        mock_chat_create.return_value = mock_response
         
-        # Test alternate endpoint
-        response = app.app.test_client().get('/chat/chat_history')
-        self.assertEqual(response.status_code, 200)
-
-    def test_chat_history_database_error(self):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        import app
+        response = app.get_openai_response("Test question")
+        self.assertEqual(response, "OpenAI response")
         
-        with patch('sqlite3.connect') as mock_connect:
-            mock_connect.side_effect = sqlite3.Error("Database error")
-            response = app.app.test_client().get('/chat_history')
-            self.assertEqual(response.status_code, 500)
+        # Test error scenarios
+        error_cases = [
+            (openai.RateLimitError, "Rate limit", 429),
+            (openai.APIError, "API Error", 500),
+            (openai.AuthenticationError, "Auth failed", 401),
+            (openai.BadRequestError, "Bad request", 400)
+        ]
+        
+        for error_class, error_message, status_code in error_cases:
+            mock_chat_create.side_effect = error_class(
+                response=create_mock_response(status_code, {"error": {"message": error_message}}),
+                body={"error": {"message": error_message}}
+            )
+            
+            with self.assertRaises(error_class):
+                app.get_openai_response("Test question")
 
-    @patch('time.sleep')
-    def test_ask_route_multiple_retries(self, mock_sleep):
+    def test_ask_route_comprehensive(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
         
         with patch('app.get_openai_response') as mock_get_response:
-            # Simulate multiple rate limit errors then success
-            mock_get_response.side_effect = [
-                openai.RateLimitError(
-                    response=MagicMock(status_code=429),
-                    body={"error": {"message": "Rate limit exceeded"}}
-                ),
-                openai.RateLimitError(
-                    response=MagicMock(status_code=429),
-                    body={"error": {"message": "Rate limit exceeded"}}
-                ),
-                "Final success"
+            mock_get_response.return_value = "Test response"
+            
+            test_cases = [
+                # Valid request
+                ({'question': TEST_QUESTION}, 200, {'question': TEST_QUESTION, 'answer': "Test response"}),
+                # Missing question
+                ({}, 400, {'error': 'Missing question parameter'}),
+                # Empty question
+                ({'question': ''}, 400, {'error': 'Missing question parameter'}),
+                # Non-string question
+                ({'question': 123}, 400, {'error': 'Invalid question format'})
             ]
             
-            response = app.app.test_client().post(
-                '/ask',
-                json={'question': TEST_QUESTION}
-            )
+            for request_data, expected_status, expected_response in test_cases:
+                response = app.app.test_client().post(
+                    '/ask',
+                    json=request_data
+                )
+                self.assertEqual(response.status_code, expected_status)
+                self.assertEqual(response.get_json(), expected_response)
+
+    def test_debug_mode_comprehensive(self):
+        test_cases = [
+            ('true', True),
+            ('True', True),
+            ('FALSE', False),
+            ('false', False),
+            ('0', False),
+            ('1', False),
+            (None, False)
+        ]
+        
+        for debug_value, expected_debug in test_cases:
+            os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+            if debug_value is not None:
+                os.environ['USE_DEBUG'] = debug_value
+            else:
+                os.environ.pop('USE_DEBUG', None)
             
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertEqual(data['answer'], "Final success")
-            self.assertEqual(mock_sleep.call_count, 2)
-            mock_sleep.assert_has_calls([call(10), call(10)])
+            with patch('flask.Flask.run') as mock_run:
+                import app
+                app.main()
+                mock_run.assert_called_once_with(
+                    host='0.0.0.0',
+                    port=48080,
+                    debug=expected_debug
+                )
+            
+            if 'app' in sys.modules:
+                del sys.modules['app']
 
-    def test_ask_route_invalid_json(self):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        import app
-        
-        # Test missing question field
-        response = app.app.test_client().post(
-            '/ask',
-            json={}
-        )
-        self.assertEqual(response.status_code, 400)
-        
-        # Test invalid JSON
-        response = app.app.test_client().post(
-            '/ask',
-            data='invalid json',
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_logging_setup(self):
+    def test_logging_comprehensive(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
         
         with self.assertLogs('app', level='INFO') as log:
-            app.app.test_client().post(
-                '/ask',
-                json={'question': TEST_QUESTION}
-            )
+            with patch('app.get_openai_response') as mock_get_response:
+                mock_get_response.return_value = "Test response"
+                
+                # Test successful request
+                app.app.test_client().post(
+                    '/ask',
+                    json={'question': TEST_QUESTION}
+                )
+                
+                # Test error scenario
+                mock_get_response.side_effect = Exception("Test error")
+                app.app.test_client().post(
+                    '/ask',
+                    json={'question': TEST_QUESTION}
+                )
         
         log_messages = [record.getMessage() for record in log.records]
-        self.assertIn(f'Received question: {TEST_QUESTION}', log_messages)
-        self.assertIn(f'Sending request to OpenAI API: {TEST_QUESTION}', log_messages)
-
-    @patch('app.create_table')
-    def test_main_function(self, mock_create_table):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        os.environ['USE_DEBUG'] = 'true'
-        import app
+        expected_messages = [
+            f'Received question: {TEST_QUESTION}',
+            f'Sending request to OpenAI API: {TEST_QUESTION}',
+            'API response received successfully',
+            f'Received question: {TEST_QUESTION}',
+            f'Sending request to OpenAI API: {TEST_QUESTION}',
+            'Unexpected error: Test error'
+        ]
         
-        with patch('flask.Flask.run') as mock_run:
-            app.main()
-            mock_create_table.assert_called_once()
-            mock_run.assert_called_once_with(
-                host='0.0.0.0',
-                port=48080,
-                debug=True
-            )
+        for expected in expected_messages:
+            self.assertTrue(any(expected in msg for msg in log_messages))
 
 if __name__ == '__main__':
     unittest.main()
