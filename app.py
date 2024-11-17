@@ -97,6 +97,8 @@ def get_claude_response(question):
         raise
 
 def get_openai_response(question):
+    if not isinstance(question, str):
+        raise ValueError("Question must be a string")
     try:
         logger.info(f"Sending request to OpenAI API: {question}")
         response = openai.chat.completions.create(
@@ -112,45 +114,29 @@ def get_openai_response(question):
         logger.error(f"Error in OpenAI API call: {str(e)}", exc_info=True)
         raise
 
-@app.route('/')
-def home():
-    if OPENAI_API_KEY:
-        title = "Chat with ChatGPT"
-    elif CLAUDE_API_KEY:
-        title = "Chat with Claude"
-    else:
-        title = "Chat with No Model Available"
-
-    return render_template('index.html', title=title)
-
 @app.route('/ask', methods=['POST'])
 @app.route('/chat/ask', methods=['POST'])
 def ask():
-    question = request.json['question']
-    logger.info(f"Received question: {question}")
-    actual_question = f"{question}. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags."
-    
-    retries = 5
-    for i in range(retries):
-        try:
-            if OPENAI_API_KEY:
-                answer = get_openai_response(actual_question)
-            else:
-                answer = get_claude_response(actual_question)
+    try:
+        data = request.get_json()
+        if not data or 'question' not in data or not data['question']:
+            return jsonify(error="Missing question parameter"), 400
             
-            logger.info(f"API response received successfully")
-            insert_question_answer(question, answer)
-            return jsonify(question=question, answer=answer)
+        question = data['question']
+        if not isinstance(question, str):
+            return jsonify(error="Invalid question format"), 400
             
-        except (openai.RateLimitError, anthropic.RateLimitError) as e:
-            logger.warning(f"Rate limit error (attempt {i+1}/{retries}): {str(e)}")
-            if i < retries - 1:
-                time.sleep(10)
-            else:
-                return jsonify(error="API is overloaded, please try again later."), 503
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            return jsonify(error=str(e)), 500
+        logger.info(f"Received question: {question}")
+        actual_question = f"{question}. Answer the question using HTML5 tags to improve formatting."
+        
+        for attempt in range(5):
+            try:
+                if OPENAI_API_KEY:
+                    answer = get_openai_response(actual_question)
+                else:
+                    answer = get_claude_response(actual_question)
+                
+                logger.info("API response received successfully")
 
 @app.route('/chat_history')
 @app.route('/chat/chat_history')
