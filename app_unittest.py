@@ -6,6 +6,7 @@ import os
 import sys
 import sqlite3
 import anthropic
+import openai
 
 TEST_QUESTION = 'Test question'
 
@@ -75,7 +76,7 @@ class TestApp(unittest.TestCase):
         # Mock Claude API raising credit balance error
         mock_client = MagicMock()
         mock_anthropic.return_value = mock_client
-        mock_client.messages.create.side_effect = anthropic.BadRequestError("credit balance is too low")
+        mock_client.messages.create.side_effect = anthropic.BadRequestError(response=None, body="credit balance is too low")
         
         with self.assertRaises(SystemExit) as cm:
             import app
@@ -91,7 +92,7 @@ class TestApp(unittest.TestCase):
         self.assertIn(b'<h1>Chat with ChatGPT</h1>', response.data)
         self.assertIn(b'<textarea id="question-input"', response.data)
 
-    @patch('openai.chat.completions.create')
+    @patch('openai.ChatCompletion.create')
     @patch('sqlite3.connect')
     def test_ask_route(self, mock_sqlite_connect, mock_chat_create):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
@@ -142,14 +143,14 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'<strong>Question:</strong>', response.data)
 
-    @patch('openai.chat.completions.create')
+    @patch('openai.ChatCompletion.create')
     def test_rate_limit_handling(self, mock_chat_create):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         from app import app
         self.app = app.test_client()
         
         # Simulate rate limit error
-        mock_chat_create.side_effect = openai.RateLimitError("Rate limit exceeded")
+        mock_chat_create.side_effect = openai.error.RateLimitError("Rate limit exceeded")
         
         response = self.app.post('/ask', json={'question': TEST_QUESTION})
         self.assertEqual(response.status_code, 503)
