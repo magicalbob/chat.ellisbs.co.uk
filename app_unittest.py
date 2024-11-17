@@ -5,6 +5,7 @@ from flask import Flask
 import os
 import sys
 import sqlite3
+import openai
 import anthropic
 
 TEST_QUESTION = 'Test question'
