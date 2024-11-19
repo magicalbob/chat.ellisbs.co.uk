@@ -20,6 +20,10 @@ app = Flask(__name__)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
 
+class InsufficientCreditsError(RuntimeError):
+    """Exception raised when the API account has insufficient credits."""
+    pass
+
 if not OPENAI_API_KEY and not CLAUDE_API_KEY:
     logger.error("Neither OPENAI_API_KEY nor CLAUDE_API_KEY environment variables are set")
     sys.exit(1)
@@ -38,10 +42,10 @@ if CLAUDE_API_KEY and not OPENAI_API_KEY:
     except anthropic.BadRequestError as e:
         if "credit balance is too low" in str(e):
             logger.error("Claude API key is valid but account has insufficient credits")
-            sys.exit(1)
+            raise InsufficientCreditsError("Claude API account has insufficient credits - please check your billing status")
         else:
             logger.error(f"Error validating Claude API key: {str(e)}")
-            sys.exit(1)
+            raise
     except Exception as e:
         logger.error(f"Error validating Claude API key: {str(e)}")
         sys.exit(1)
