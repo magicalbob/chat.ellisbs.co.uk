@@ -420,5 +420,34 @@ class TestApp(unittest.TestCase):
         self.assertIn("Claude API key is valid but account has insufficient credits", log.output[0])
         mock_exit.assert_called_once_with(1)
 
+    @patch('app.create_table')
+    @patch('sqlite3.connect')
+    def test_insert_question_answer_with_operational_error(self, mock_connect, mock_create_table):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        import app
+
+        # Mock the database connection and cursor
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+
+        # Set up the mock cursor to raise an OperationalError on the first call, then succeed
+        mock_cursor.execute.side_effect = [sqlite3.OperationalError, None]
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Call the function to insert data
+        question, answer = "Q_test", "A_test"
+        app.insert_question_answer(question, answer)
+
+        # Check if create_table was called due to the OperationalError
+        mock_create_table.assert_called_once()
+
+        # Check if the insert was retried after create_table was called
+        self.assertEqual(mock_cursor.execute.call_count, 2)
+        mock_cursor.execute.assert_any_call("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
+
+        # Commit should have been called once after a successful retry
+        mock_conn.commit.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
