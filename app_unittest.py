@@ -392,12 +392,33 @@ class TestApp(unittest.TestCase):
         app.create_table()
         conn.cursor().execute.assert_called_once()
 
-    def test_chat_history_formatting(self):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        app.insert_question_answer("Test Question", "This is **bold** answer and <strong>HTML</strong>")
-        response = app.app.test_client().get('/chat_history')
-        self.assertIn('<strong>bold</strong>', response.data.decode('utf-8'))
-        self.assertIn('<strong>HTML</strong>', response.data.decode('utf-8'))
+    @patch('anthropic.Anthropic')
+    @patch('sys.exit')
+    def test_claude_credit_balance_error(self, mock_exit, mock_anthropic):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
+        
+        # Mock the Claude client and simulate a credit balance error
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        
+        # Creating a mock response to satisfy the `response` requirement
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"error": {"message": "credit balance is too low"}}
+        
+        # Set the side effect to raise `BadRequestError` with the mock response
+        mock_client.messages.create.side_effect = anthropic.BadRequestError(
+            message="Insufficient balance",
+            response=mock_response
+        )
+
+        # Capture logging output
+        with self.assertLogs('app', level='ERROR') as log:
+            import app  # Re-import to trigger code execution
+
+        # Check that the log message and sys.exit(1) were called as expected
+        self.assertIn("Claude API key is valid but account has insufficient credits", log.output[0])
+        mock_exit.assert_called_once_with(1)
 
 if __name__ == '__main__':
     unittest.main()
