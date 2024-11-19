@@ -219,31 +219,44 @@ class TestApp(unittest.TestCase):
     def test_openai_response_comprehensive(self, mock_chat_create):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
-        
+    
         # Test successful response
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content='OpenAI response'))]
         mock_chat_create.return_value = mock_response
-        
+    
         response = app.get_openai_response("Test question")
         self.assertEqual(response, "OpenAI response")
         
-        # Test error scenarios
+        # Define a helper function to create a mock response for error simulation
+        def create_mock_response(status_code, error_message):
+            mock_response = MagicMock()
+            mock_response.status_code = status_code
+            mock_response.json.return_value = {"error": {"message": error_message}}
+            return mock_response
+    
+        # Test error scenarios with required arguments
         error_cases = [
             (openai.RateLimitError, "Rate limit", 429),
             (openai.APIError, "API Error", 500),
             (openai.AuthenticationError, "Auth failed", 401),
             (openai.BadRequestError, "Bad request", 400)
         ]
-        
+    
         for error_class, error_message, status_code in error_cases:
             mock_chat_create.side_effect = error_class(
-                response=create_mock_response(status_code, {"error": {"message": error_message}}),
-                body={"error": {"message": error_message}}
+                message=error_message,  # Adding the required message argument
+                response=create_mock_response(status_code, error_message)
             )
-            
+    
             with self.assertRaises(error_class):
                 app.get_openai_response("Test question")
+    
+            # Clear the side effect after each test case
+            mock_chat_create.side_effect = None
+    
+        if 'app' in sys.modules:
+            del sys.modules['app']
 
     def test_ask_route_comprehensive(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
@@ -334,6 +347,57 @@ class TestApp(unittest.TestCase):
         
         for expected in expected_messages:
             self.assertTrue(any(expected in msg for msg in log_messages))
+
+    @patch('app.insert_question_answer')
+    def test_ask_route_with_invalid_question(self, mock_insert):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        with patch('app.get_openai_response') as mock_get_response:
+            mock_get_response.return_value = "Test response"
+        
+            # Test with missing question
+            response = app.app.test_client().post('/ask', json={})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get_json(), {'error': 'Missing question parameter'})
+
+            # Test with empty question
+            response = app.app.test_client().post('/ask', json={'question': ''})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get_json(), {'error': 'Missing question parameter'})
+
+            # Test with non-string question
+            response = app.app.test_client().post('/ask', json={'question': 123})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get_json(), {'error': 'Invalid question format'})
+
+    @patch('app.get_openai_response')
+    def test_ask_api_exception_handling(self, mock_get_response):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        mock_get_response.side_effect = Exception("Test exception")
+        response = app.app.test_client().post('/ask', json={'question': 'Test question'})
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.get_json(), {'error': 'Test exception'})
+
+    def test_home_route_without_keys(self):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ.pop('CLAUDE_API_KEY', None)
+        response = app.app.test_client().get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Chat with No Model Available", response.data.decode('utf-8'))
+
+    @patch('sqlite3.connect')
+    def test_create_table_called(self, mock_connect):
+        conn = MagicMock()
+        mock_connect.return_value = conn
+        
+        app.create_table()
+        conn.cursor().execute.assert_called_once()
+
+    def test_chat_history_formatting(self):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        app.insert_question_answer("Test Question", "This is **bold** answer and <strong>HTML</strong>")
+        response = app.app.test_client().get('/chat_history')
+        self.assertIn('<strong>bold</strong>', response.data.decode('utf-8'))
+        self.assertIn('<strong>HTML</strong>', response.data.decode('utf-8'))
 
 if __name__ == '__main__':
     unittest.main()
