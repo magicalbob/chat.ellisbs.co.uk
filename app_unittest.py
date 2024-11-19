@@ -98,31 +98,40 @@ class TestApp(unittest.TestCase):
     def test_database_operations_comprehensive(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
-        
+
+        # Clear existing data in the database
+        conn = sqlite3.connect(app.DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM chat_history")  # Clear the table
+        conn.commit()
+        conn.close()
+
         # Test table creation
         app.create_table()
-        
+
         # Test multiple insertions
         test_data = [
             ("Q1", "A1"),
             ("Q2", "A2 with **bold**"),
             ("Q3", "A3 with <script>alert('xss')</script>")  # Test XSS handling
         ]
-        
+
         for q, a in test_data:
             app.insert_question_answer(q, a)
-            
+
         # Test retrieval
         conn = sqlite3.connect(app.DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT question, answer FROM chat_history ORDER BY id")
         results = cursor.fetchall()
         conn.close()
-        
+
+        # Assert that the number of results matches the number of test entries
         self.assertEqual(len(results), len(test_data))
-        for (q, a), (stored_q, stored_a) in zip(test_data, results):
-            self.assertEqual(q, stored_q)
-            self.assertEqual(a, stored_a)
+
+        # Optionally, verify content if needed
+        for i, (question, answer) in enumerate(test_data):
+            self.assertEqual(results[i], (question, answer))
 
     @patch('sqlite3.connect')
     def test_database_error_scenarios(self, mock_connect):
