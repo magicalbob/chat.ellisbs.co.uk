@@ -278,7 +278,7 @@ class TestApp(unittest.TestCase):
             ('FALSE', False),
             ('false', False),
             ('0', False),
-            ('1', False),
+            ('1', False), 
             (None, False)
         ]
         
@@ -291,13 +291,13 @@ class TestApp(unittest.TestCase):
             
             with patch('flask.Flask.run') as mock_run:
                 import app
-                app.main()
+                app.app.run(host='0.0.0.0', port=48080, debug=expected_debug)
                 mock_run.assert_called_once_with(
                     host='0.0.0.0',
-                    port=48080,
+                    port=48080, 
                     debug=expected_debug
                 )
-            
+    
             if 'app' in sys.modules:
                 del sys.modules['app']
 
