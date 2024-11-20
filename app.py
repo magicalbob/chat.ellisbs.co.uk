@@ -92,7 +92,7 @@ def get_claude_response(question):
     except anthropic.BadRequestError as e:
         if "credit balance is too low" in str(e):
             logger.error("Claude API account has insufficient credits")
-            raise Exception("Claude API account has insufficient credits - please check your billing status")
+            raise ValueError("Claude API account has insufficient credits - please check your billing status")
         else:
             logger.error(f"Claude API error: {str(e)}")
             raise
