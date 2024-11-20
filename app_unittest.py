@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 import logging
 from http import HTTPStatus
+import app
 
 TEST_QUESTION = 'Test question'
 TEST_ANSWER = "Test response"
