@@ -11,7 +11,7 @@ function initializeApp() {
     // Add event listener to the question input field (textarea)
     $("#question-input").keypress(function(event) {
         if (event.which === 13 && !event.shiftKey) { // Enter key without Shift
-            var text = $("#question-input").val();
+            let text = $("#question-input").val();
             $("#question-input").val(text + "\n"); // Insert newline
             event.preventDefault(); // Prevent default Enter behavior
         } else if (event.which === 13 && event.shiftKey) { // Enter key with Shift
