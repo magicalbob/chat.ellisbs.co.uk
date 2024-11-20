@@ -13,6 +13,12 @@ import logging
 from http import HTTPStatus
 
 TEST_QUESTION = 'Test question'
+ERROR_CASES = [
+    (anthropic.RateLimitError, {"error": {"message": "Rate limit"}}, 429),
+    (anthropic.BadRequestError, {"error": {"message": "Bad request"}}, 400),
+    (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
+    (anthropic.APIError, {"error": {"message": "API error"}}, 500)
+]
 
 def create_mock_response(status_code, body):
     mock_response = MagicMock()
@@ -199,12 +205,7 @@ class TestApp(unittest.TestCase):
         self.assertEqual(response, "Claude response")
         
         # Test various error scenarios
-        error_cases = [
-            (anthropic.RateLimitError, {"error": {"message": "Rate limit"}}, 429),
-            (anthropic.BadRequestError, {"error": {"message": "Bad request"}}, 400),
-            (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
-            (anthropic.APIError, {"error": {"message": "API error"}}, 500)
-        ]
+        error_cases = ERROR_CASES
         
         for error_class, error_body, status_code in error_cases:
             mock_client.messages.create.side_effect = error_class(
@@ -236,12 +237,7 @@ class TestApp(unittest.TestCase):
             return mock_response
     
         # Test error scenarios with required arguments
-        error_cases = [
-            (openai.RateLimitError, "Rate limit", 429),
-            (openai.APIError, "API Error", 500),
-            (openai.AuthenticationError, "Auth failed", 401),
-            (openai.BadRequestError, "Bad request", 400)
-        ]
+        error_cases = ERROR_CASES
     
         for error_class, error_message, status_code in error_cases:
             mock_chat_create.side_effect = error_class(
