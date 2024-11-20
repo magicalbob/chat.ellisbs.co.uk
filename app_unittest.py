@@ -27,6 +27,7 @@ CLAUDE_RESPONSE = "Claude response"
 OPENAI_QUESTION = 'Test question for OpenAI'
 OPENAI_RESPONSE = "OpenAI response"
 GET_OPENAI_RESPONSE = 'app.get_openai_response'
+CHAT_WITH_CHATGPT = "Chat with ChatGPT"
 
 def create_mock_response(status_code, body):
     mock_response = MagicMock()
@@ -386,7 +387,7 @@ class TestApp(unittest.TestCase):
         os.environ.pop('CLAUDE_API_KEY', None)
         response = app.app.test_client().get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Chat with ChatGPT", response.data.decode('utf-8'))
+        self.assertIn(CHAT_WITH_CHATGPT, response.data.decode('utf-8'))
 
     @patch('sqlite3.connect')
     def test_create_table_called(self, mock_connect):
@@ -505,8 +506,8 @@ class TestApp(unittest.TestCase):
     @patch('os.getenv')
     def test_home_route_titles(self, mock_getenv, mock_anthropic):
         for openai_key, claude_key, expected_title in [
-            ('test-key', None, "Chat with ChatGPT"),
-            (None, None, "Chat with ChatGPT")
+            ('test-key', None, CHAT_WITH_CHATGPT),
+            (None, None, CHAT_WITH_CHATGPT)
         ]:
             # Reset mocks
             mock_getenv.reset_mock()
