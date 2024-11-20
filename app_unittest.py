@@ -233,13 +233,6 @@ class TestApp(unittest.TestCase):
         response = app.get_openai_response(TEST_QUESTION)
         self.assertEqual(response, OPENAI_RESPONSE)
 
-        # Define a helper function to create a mock response for error simulation
-        def create_mock_response(status_code, error_message):
-            mock_response = MagicMock()
-            mock_response.status_code = status_code
-            mock_response.json.return_value = {"error": {"message": error_message}}
-            return mock_response
-
         # Test error scenarios with required arguments
         error_cases = [
             (openai.RateLimitError, "Rate limit", 429),
