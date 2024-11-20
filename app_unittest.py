@@ -209,7 +209,7 @@ class TestApp(unittest.TestCase):
 
         import app
         response = app.get_claude_response(TEST_QUESTION)
-        self.assertEqual(response, CLAUD_RESPONSE)
+        self.assertEqual(response, CLAUDE_RESPONSE)
 
         # Test various error scenarios
         error_cases = ERROR_CASES
@@ -486,7 +486,7 @@ class TestApp(unittest.TestCase):
         import app
 
         # Mock responses
-        mock_get_claude_response.return_value = CLAUD_RESPONSE
+        mock_get_claude_response.return_value = CLAUDE_RESPONSE
 
         # Send request
         response = app.app.test_client().post('/ask', json={'question': CLAUDE_QUESTION})
