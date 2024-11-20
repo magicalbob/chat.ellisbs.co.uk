@@ -509,39 +509,39 @@ class TestApp(unittest.TestCase):
         ]:
             # Reset mocks
             mock_getenv.reset_mock()
-            mock_getenv.side_effect = lambda x, default=None: {
+            mock_getenv.side_effect = lambda x, openai_key=openai_key, claude_key=claude_key: {
                 'OPENAI_API_KEY': openai_key,
                 'CLAUDE_API_KEY': claude_key,
                 'USE_DEBUG': 'False'
-            }.get(x, default)
-
+            }.get(x, None)
+    
             # Reload app
             if 'app' in sys.modules:
                 del sys.modules['app']
-
+    
             import app
             response = app.app.test_client().get('/')
             self.assertEqual(response.status_code, 200)
             self.assertIn(expected_title.encode(), response.data)
-
+    
         # Test Claude case separately due to API validation
         mock_getenv.reset_mock()
-        mock_getenv.side_effect = lambda x, default=None: {
+        mock_getenv.side_effect = lambda x, claude_key='test-key': {
             'OPENAI_API_KEY': None,
-            'CLAUDE_API_KEY': 'test-key',
+            'CLAUDE_API_KEY': claude_key,
             'USE_DEBUG': 'False'
-        }.get(x, default)
-
+        }.get(x, None)
+    
         # Setup Claude mock
         mock_client = MagicMock()
         mock_anthropic.return_value = mock_client
         mock_response = MagicMock()
         mock_response.content = [MagicMock(text="Test response")]
         mock_client.messages.create.return_value = mock_response
-
+    
         if 'app' in sys.modules:
             del sys.modules['app']
-
+    
         import app
         response = app.app.test_client().get('/')
         self.assertEqual(response.status_code, 200)
