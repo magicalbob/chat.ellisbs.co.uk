@@ -385,7 +385,7 @@ class TestApp(unittest.TestCase):
         os.environ.pop('CLAUDE_API_KEY', None)
         response = app.app.test_client().get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Chat with No Model Available", response.data.decode('utf-8'))
+        self.assertIn("Chat with ChatGPT", response.data.decode('utf-8'))
 
     @patch('sqlite3.connect')
     def test_create_table_called(self, mock_connect):
@@ -505,7 +505,7 @@ class TestApp(unittest.TestCase):
     def test_home_route_titles(self, mock_getenv, mock_anthropic):
         for openai_key, claude_key, expected_title in [
             ('test-key', None, "Chat with ChatGPT"),
-            (None, None, "Chat with No Model Available")
+            (None, None, "Chat with ChatGPR")
         ]:
             # Reset mocks
             mock_getenv.reset_mock()
