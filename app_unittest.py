@@ -21,7 +21,7 @@ ERROR_CASES = [
     (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
     (anthropic.APIError, {"error": {"message": "API error"}}, 500)
 ]
-CLAUDE_QUESTION = CLAUDE_QUESTION
+CLAUDE_QUESTION = 'Test question for Claude'
 CLAUDE_RESPONSE = "Claude response"
 OPENAI_RESPONSE = "OpenAI response"
 
