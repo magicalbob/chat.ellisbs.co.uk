@@ -1,9 +1,11 @@
 stages:
- - test
- - scan
+  - test
+  - scan
 
 variables:
   SONAR_SCANNER_VERSION: 5.0.1.3006
+  GIT_STRATEGY: clone  # Ensure full clone is used in all jobs
+  GIT_DEPTH: 0         # Disable shallow clone for all jobs
 
 test_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
@@ -17,8 +19,6 @@ test_job:
   artifacts:
     paths:
       - coverage.xml
-  variables:
-    GIT_STRATEGY: clone
 
 scan_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
@@ -33,6 +33,4 @@ scan_job:
     - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN
   dependencies:
     - test_job
-  variables:
-    GIT_STRATEGY: clone
 
