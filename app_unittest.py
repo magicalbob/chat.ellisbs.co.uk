@@ -499,5 +499,52 @@ class TestApp(unittest.TestCase):
         )
         mock_insert.assert_called_once_with(CLAUDE_QUESTION, CLAUDE_RESPONSE)
 
+    @patch('anthropic.Anthropic')
+    @patch('os.getenv')
+    def test_home_route_titles(self, mock_getenv, mock_anthropic):
+        for openai_key, claude_key, expected_title in [
+            ('test-key', None, "Chat with ChatGPT"),
+            (None, None, "Chat with No Model Available")
+        ]:
+            # Reset mocks
+            mock_getenv.reset_mock()
+            mock_getenv.side_effect = lambda x, default=None: {
+                'OPENAI_API_KEY': openai_key,
+                'CLAUDE_API_KEY': claude_key,
+                'USE_DEBUG': 'False'
+            }.get(x, default)
+
+            # Reload app
+            if 'app' in sys.modules:
+                del sys.modules['app']
+
+            import app
+            response = app.app.test_client().get('/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(expected_title.encode(), response.data)
+
+        # Test Claude case separately due to API validation
+        mock_getenv.reset_mock()
+        mock_getenv.side_effect = lambda x, default=None: {
+            'OPENAI_API_KEY': None,
+            'CLAUDE_API_KEY': 'test-key',
+            'USE_DEBUG': 'False'
+        }.get(x, default)
+
+        # Setup Claude mock
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text="Test response")]
+        mock_client.messages.create.return_value = mock_response
+
+        if 'app' in sys.modules:
+            del sys.modules['app']
+
+        import app
+        response = app.app.test_client().get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Chat with Claude".encode(), response.data)
+
 if __name__ == '__main__':
     unittest.main()
