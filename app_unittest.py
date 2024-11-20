@@ -23,6 +23,7 @@ ERROR_CASES = [
 ]
 CLAUDE_QUESTION = 'Test question for Claude'
 CLAUDE_RESPONSE = "Claude response"
+OPENAI_QUESTION = 'Test question for OpenAI'
 OPENAI_RESPONSE = "OpenAI response"
 
 def create_mock_response(status_code, body):
@@ -463,15 +464,15 @@ class TestApp(unittest.TestCase):
         mock_get_openai_response.return_value = OPENAI_RESPONSE
 
         # Send request
-        response = app.app.test_client().post('/ask', json={'question': 'Test question for OpenAI'})
+        response = app.app.test_client().post('/ask', json={'question': OPENAI_QUESTION})
 
         # Assert correct response and function calls
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'question': 'Test question for OpenAI', 'answer': OPENAI_RESPONSE})
+        self.assertEqual(response.json, {'question': OPENAI_QUESTION, 'answer': OPENAI_RESPONSE})
         mock_get_openai_response.assert_called_once_with(
             'Test question for OpenAI. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
         )
-        mock_insert.assert_called_once_with('Test question for OpenAI', OPENAI_RESPONSE)
+        mock_insert.assert_called_once_with(OPENAI_QUESTION, OPENAI_RESPONSE)
 
     @patch('app.get_claude_response')
     @patch('app.insert_question_answer')
