@@ -453,5 +453,53 @@ class TestApp(unittest.TestCase):
         # Commit should have been called once after a successful retry
         mock_conn.commit.assert_called_once()
 
+    @patch('app.get_openai_response')
+    @patch('app.insert_question_answer')
+    def test_ask_route_openai(self, mock_insert, mock_get_openai_response):
+        # Set up environment to use OpenAI
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        os.environ.pop('CLAUDE_API_KEY', None)
+
+        # Import app after setting environment variables
+        import app
+
+        # Mock responses
+        mock_get_openai_response.return_value = "OpenAI response"
+
+        # Send request
+        response = app.app.test_client().post('/ask', json={'question': 'Test question for OpenAI'})
+
+        # Assert correct response and function calls
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'question': 'Test question for OpenAI', 'answer': "OpenAI response"})
+        mock_get_openai_response.assert_called_once_with(
+            'Test question for OpenAI. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
+        )
+        mock_insert.assert_called_once_with('Test question for OpenAI', "OpenAI response")
+
+    @patch('app.get_claude_response')
+    @patch('app.insert_question_answer')
+    def test_ask_route_claude(self, mock_insert, mock_get_claude_response):
+        # Set up environment to use Claude
+        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
+        os.environ.pop('OPENAI_API_KEY', None)
+
+        # Import app after setting environment variables
+        import app
+
+        # Mock responses
+        mock_get_claude_response.return_value = "Claude response"
+
+        # Send request
+        response = app.app.test_client().post('/ask', json={'question': 'Test question for Claude'})
+
+        # Assert correct response and function calls
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'question': 'Test question for Claude', 'answer': "Claude response"})
+        mock_get_claude_response.assert_called_once_with(
+            'Test question for Claude. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
+        )
+        mock_insert.assert_called_once_with('Test question for Claude', "Claude response")
+
 if __name__ == '__main__':
     unittest.main()
