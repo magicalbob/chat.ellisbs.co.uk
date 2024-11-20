@@ -13,6 +13,7 @@ import logging
 from http import HTTPStatus
 
 TEST_QUESTION = 'Test question'
+TEST_ANSWER = "Test response"
 MISSING_QUESTION = 'Missing question parameter'
 ERROR_CASES = [
     (anthropic.RateLimitError, {"error": {"message": "Rate limit"}}, 429),
@@ -260,11 +261,11 @@ class TestApp(unittest.TestCase):
         import app
         
         with patch('app.get_openai_response') as mock_get_response:
-            mock_get_response.return_value = "Test response"
+            mock_get_response.return_value = TEST_ANSWER
             
             test_cases = [
                 # Valid request
-                ({'question': TEST_QUESTION}, 200, {'question': TEST_QUESTION, 'answer': "Test response"}),
+                ({'question': TEST_QUESTION}, 200, {'question': TEST_QUESTION, 'answer': TEST_ANSWER}),
                 # Missing question
                 ({}, 400, {'error': MISSING_QUESTION}),
                 # Empty question
@@ -317,7 +318,7 @@ class TestApp(unittest.TestCase):
         
         with self.assertLogs('app', level='INFO') as log:
             with patch('app.get_openai_response') as mock_get_response:
-                mock_get_response.return_value = "Test response"
+                mock_get_response.return_value = TEST_ANSWER
                 
                 # Test successful request
                 app.app.test_client().post(
@@ -349,7 +350,7 @@ class TestApp(unittest.TestCase):
     def test_ask_route_with_invalid_question(self, mock_insert):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         with patch('app.get_openai_response') as mock_get_response:
-            mock_get_response.return_value = "Test response"
+            mock_get_response.return_value = TEST_ANSWER
         
             # Test with missing question
             response = app.app.test_client().post('/ask', json={})
