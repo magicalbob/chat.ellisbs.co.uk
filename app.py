@@ -142,7 +142,7 @@ def ask():
             else:
                 answer = get_claude_response(actual_question)
             
-            logger.info(f"API response received successfully")
+            logger.info("API response received successfully")
             insert_question_answer(question, answer)
             return jsonify(question=question, answer=answer)
             
