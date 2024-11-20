@@ -13,6 +13,7 @@ import logging
 from http import HTTPStatus
 
 TEST_QUESTION = 'Test question'
+MISSING_QUESTION = 'Missing question parameter'
 ERROR_CASES = [
     (anthropic.RateLimitError, {"error": {"message": "Rate limit"}}, 429),
     (anthropic.BadRequestError, {"error": {"message": "Bad request"}}, 400),
@@ -265,9 +266,9 @@ class TestApp(unittest.TestCase):
                 # Valid request
                 ({'question': TEST_QUESTION}, 200, {'question': TEST_QUESTION, 'answer': "Test response"}),
                 # Missing question
-                ({}, 400, {'error': 'Missing question parameter'}),
+                ({}, 400, {'error': MISSING_QUESTION}),
                 # Empty question
-                ({'question': ''}, 400, {'error': 'Missing question parameter'}),
+                ({'question': ''}, 400, {'error': MISSING_QUESTION}),
                 # Non-string question
                 ({'question': 123}, 400, {'error': 'Invalid question format'})
             ]
@@ -353,12 +354,12 @@ class TestApp(unittest.TestCase):
             # Test with missing question
             response = app.app.test_client().post('/ask', json={})
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get_json(), {'error': 'Missing question parameter'})
+            self.assertEqual(response.get_json(), {'error': MISSING_QUESTION})
 
             # Test with empty question
             response = app.app.test_client().post('/ask', json={'question': ''})
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get_json(), {'error': 'Missing question parameter'})
+            self.assertEqual(response.get_json(), {'error': MISSING_QUESTION})
 
             # Test with non-string question
             response = app.app.test_client().post('/ask', json={'question': 123})
