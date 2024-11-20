@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 pip install -r requirements.txt
 ./app_unittest.py
 coverage run -m unittest app_unittest.py

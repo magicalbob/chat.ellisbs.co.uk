@@ -15,7 +15,7 @@ test_job:
   script:
     - python3 -m venv /tmp/venv
     - source /tmp/venv/bin/activate
-    - sh testscript.sh
+    - ./testscript.sh
   artifacts:
     paths:
       - coverage.xml
