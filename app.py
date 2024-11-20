@@ -147,7 +147,7 @@ def ask():
             return jsonify(question=question, answer=answer)
             
         except (openai.RateLimitError, anthropic.RateLimitError) as e:
-            logger.warning(f"Rate limit error (attempt {i+1}/{retries}): {str(e)}")
+            logger.warning("Rate limit error (attempt {}/{}): {}".format(i + 1, retries, str(e)))
             if i < retries - 1:
                 time.sleep(10)
             else:
