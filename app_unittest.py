@@ -25,6 +25,7 @@ CLAUDE_QUESTION = 'Test question for Claude'
 CLAUDE_RESPONSE = "Claude response"
 OPENAI_QUESTION = 'Test question for OpenAI'
 OPENAI_RESPONSE = "OpenAI response"
+GET_OPENAI_RESPONSE = 'app.get_openai_response'
 
 def create_mock_response(status_code, body):
     mock_response = MagicMock()
@@ -263,7 +264,7 @@ class TestApp(unittest.TestCase):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
 
-        with patch('app.get_openai_response') as mock_get_response:
+        with patch(GET_OPENAI_RESPONSE) as mock_get_response:
             mock_get_response.return_value = TEST_ANSWER
 
             test_cases = [
@@ -320,7 +321,7 @@ class TestApp(unittest.TestCase):
         import app
 
         with self.assertLogs('app', level='INFO') as log:
-            with patch('app.get_openai_response') as mock_get_response:
+            with patch(GET_OPENAI_RESPONSE) as mock_get_response:
                 mock_get_response.return_value = TEST_ANSWER
 
                 # Test successful request
