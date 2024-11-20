@@ -231,7 +231,7 @@ class TestApp(unittest.TestCase):
         mock_chat_create.return_value = mock_response
 
         response = app.get_openai_response(TEST_QUESTION)
-        self.assertEqual(response, OPENAI_RESPONSE
+        self.assertEqual(response, OPENAI_RESPONSE)
 
         # Define a helper function to create a mock response for error simulation
         def create_mock_response(status_code, error_message):
