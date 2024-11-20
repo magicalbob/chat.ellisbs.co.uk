@@ -201,7 +201,7 @@ class TestApp(unittest.TestCase):
         mock_client.messages.create.return_value = mock_response
         
         import app
-        response = app.get_claude_response("Test question")
+        response = app.get_claude_response(TEST_QUESTION)
         self.assertEqual(response, "Claude response")
         
         # Test various error scenarios
@@ -214,7 +214,7 @@ class TestApp(unittest.TestCase):
             )
             
             with self.assertRaises(error_class):
-                app.get_claude_response("Test question")
+                app.get_claude_response(TEST_QUESTION)
 
     @patch('openai.chat.completions.create')
     def test_openai_response_comprehensive(self, mock_chat_create):
@@ -226,7 +226,7 @@ class TestApp(unittest.TestCase):
         mock_response.choices = [MagicMock(message=MagicMock(content='OpenAI response'))]
         mock_chat_create.return_value = mock_response
     
-        response = app.get_openai_response("Test question")
+        response = app.get_openai_response(TEST_QUESTION)
         self.assertEqual(response, "OpenAI response")
         
         # Define a helper function to create a mock response for error simulation
@@ -246,7 +246,7 @@ class TestApp(unittest.TestCase):
             )
     
             with self.assertRaises(error_class):
-                app.get_openai_response("Test question")
+                app.get_openai_response(TEST_QUESTION)
     
             # Clear the side effect after each test case
             mock_chat_create.side_effect = None
