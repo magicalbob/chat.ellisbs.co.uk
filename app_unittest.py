@@ -21,6 +21,7 @@ ERROR_CASES = [
     (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
     (anthropic.APIError, {"error": {"message": "API error"}}, 500)
 ]
+CLAUDE_RESPONSE = "Claude response"
 
 def create_mock_response(status_code, body):
     mock_response = MagicMock()
@@ -199,12 +200,12 @@ class TestApp(unittest.TestCase):
 
         # Test successful response
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="Claude response")]
+        mock_response.content = [MagicMock(text=CLAUDE_RESPONSE)]
         mock_client.messages.create.return_value = mock_response
 
         import app
         response = app.get_claude_response(TEST_QUESTION)
-        self.assertEqual(response, "Claude response")
+        self.assertEqual(response, CLAUD_RESPONSE)
 
         # Test various error scenarios
         error_cases = ERROR_CASES
@@ -488,18 +489,18 @@ class TestApp(unittest.TestCase):
         import app
 
         # Mock responses
-        mock_get_claude_response.return_value = "Claude response"
+        mock_get_claude_response.return_value = CLAUD_RESPONSE
 
         # Send request
         response = app.app.test_client().post('/ask', json={'question': 'Test question for Claude'})
 
         # Assert correct response and function calls
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'question': 'Test question for Claude', 'answer': "Claude response"})
+        self.assertEqual(response.json, {'question': 'Test question for Claude', 'answer': CLAUDE_RESPONSE})
         mock_get_claude_response.assert_called_once_with(
             'Test question for Claude. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
         )
-        mock_insert.assert_called_once_with('Test question for Claude', "Claude response")
+        mock_insert.assert_called_once_with('Test question for Claude', CLAUD_RESPONSE)
 
 if __name__ == '__main__':
     unittest.main()
