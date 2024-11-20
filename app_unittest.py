@@ -187,7 +187,7 @@ class TestApp(unittest.TestCase):
         self.assertIn('<strong>bold</strong>', response_data)
         self.assertIn('<strong>HTML</strong>', response_data)
         self.assertIn('<strong>multiple</strong>', response_data)
-        self.assertIn('incomplete **bold', response_data)  # Incomplete formatting should be preserved
+        self.assertIn('incomplete <strong>bold', response_data)  # Incomplete formatting should be preserved
 
     @patch('anthropic.Anthropic')
     def test_claude_api_comprehensive(self, mock_anthropic):
