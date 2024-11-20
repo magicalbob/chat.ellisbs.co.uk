@@ -21,6 +21,7 @@ ERROR_CASES = [
     (anthropic.AuthenticationError, {"error": {"message": "Auth failed"}}, 401),
     (anthropic.APIError, {"error": {"message": "API error"}}, 500)
 ]
+CLAUDE_QUESTION = CLAUDE_QUESTION
 CLAUDE_RESPONSE = "Claude response"
 OPENAI_RESPONSE = "OpenAI response"
 
@@ -486,15 +487,15 @@ class TestApp(unittest.TestCase):
         mock_get_claude_response.return_value = CLAUD_RESPONSE
 
         # Send request
-        response = app.app.test_client().post('/ask', json={'question': 'Test question for Claude'})
+        response = app.app.test_client().post('/ask', json={'question': CLAUDE_QUESTION})
 
         # Assert correct response and function calls
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'question': 'Test question for Claude', 'answer': CLAUDE_RESPONSE})
+        self.assertEqual(response.json, {'question': CLAUDE_QUESTION, 'answer': CLAUDE_RESPONSE})
         mock_get_claude_response.assert_called_once_with(
             'Test question for Claude. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
         )
-        mock_insert.assert_called_once_with('Test question for Claude', CLAUD_RESPONSE)
+        mock_insert.assert_called_once_with(CLAUDE_QUESTION, CLAUDE_RESPONSE)
 
 if __name__ == '__main__':
     unittest.main()
