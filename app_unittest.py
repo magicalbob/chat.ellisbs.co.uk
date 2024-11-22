@@ -12,6 +12,7 @@ from datetime import datetime
 import logging
 from http import HTTPStatus
 import app
+from app import insert_question_answer
 
 TEST_QUESTION = 'Test question'
 TEST_ANSWER = "Test response"
@@ -548,6 +549,18 @@ class TestApp(unittest.TestCase):
         response = app.app.test_client().get('/')
         self.assertEqual(response.status_code, 200)
         self.assertIn("Chat with Claude".encode(), response.data)
+
+    def test_insert_question_answer(self):
+        question = 'Sample question'
+        answer = 'Sample answer'
+        with patch('app.sqlite3.connect') as mock_connect:
+            mock_db = MagicMock()
+            mock_connect.return_value = mock_db
+            insert_question_answer(question, answer)
+            mock_db.cursor.return_value.execute.assert_called_with(
+                "INSERT INTO chat_history (question, answer) VALUES (?, ?)", (question, answer))
+            mock_db.commit.assert_called_once()
+            mock_db.close.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
