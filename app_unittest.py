@@ -502,53 +502,96 @@ class TestApp(unittest.TestCase):
             'Test question for Claude. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
         )
         mock_insert.assert_called_once_with(CLAUDE_QUESTION, CLAUDE_RESPONSE)
+    
+        @patch('sys.exit')
+        @patch('os.getenv')
+        def test_home_route_titles(self, mock_getenv, mock_exit):
+            # Mock `sys.exit` to simulate system exit
+            mock_exit.side_effect = SystemExit
+        
+            test_cases = [
+                # (OPENAI_API_KEY, CLAUDE_API_KEY, Expected Title, Should Exit)
+                ('test-key', None, "Chat with ChatGPT", False),
+                (None, 'test-key', "Chat with Claude", False),
+                (None, None, "Chat with No Model Available", True),
+            ]
+        
+            for openai_key, claude_key, expected_title, should_exit in test_cases:
+                # Reset mocks
+                mock_getenv.reset_mock()
+                mock_exit.reset_mock()
+        
+                # Set environment variables
+                mock_getenv.side_effect = lambda x: {'OPENAI_API_KEY': openai_key, 'CLAUDE_API_KEY': claude_key}.get(x)
+        
+                try:
+                    # Reload the app module
+                    if 'app' in sys.modules:
+                        del sys.modules['app']
+                    import app
+        
+                    if should_exit:
+                        mock_exit.assert_called_once_with(1)  # Assert `sys.exit(1)` is called
+                    else:
+                        mock_exit.assert_not_called()
+                        # Perform assertions for home route response
+                        response = app.app.test_client().get('/')
+                        self.assertEqual(response.status_code, 200)
+                        self.assertIn(expected_title.encode(), response.data)
+        
+                except SystemExit:
+                    if not should_exit:
+                        self.fail("Unexpected system exit.")
 
     @patch('anthropic.Anthropic')
+    @patch('sys.exit')
     @patch('os.getenv')
-    def test_home_route_titles(self, mock_getenv, mock_anthropic):
-        for openai_key, claude_key, expected_title in [
-            ('test-key', None, CHAT_WITH_CHATGPT),
-            (None, None, CHAT_WITH_CHATGPT)
-        ]:
-            # Reset mocks
-            mock_getenv.reset_mock()
-            mock_getenv.side_effect = lambda x, openai_key=openai_key, claude_key=claude_key: {
-                'OPENAI_API_KEY': openai_key,
-                'CLAUDE_API_KEY': claude_key,
-                'USE_DEBUG': 'False'
-            }.get(x, None)
+    def test_home_route_titles(self, mock_getenv, mock_exit, mock_anthropic):
+        # Mock `sys.exit` to prevent stopping the test
+        mock_exit.side_effect = SystemExit
     
-            # Reload app
-            if 'app' in sys.modules:
-                del sys.modules['app']
-    
-            import app
-            response = app.app.test_client().get('/')
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(expected_title.encode(), response.data)
-    
-        # Test Claude case separately due to API validation
-        mock_getenv.reset_mock()
-        mock_getenv.side_effect = lambda x, claude_key='test-key': {
-            'OPENAI_API_KEY': None,
-            'CLAUDE_API_KEY': claude_key,
-            'USE_DEBUG': 'False'
-        }.get(x, None)
-    
-        # Setup Claude mock
+        # Mock Anthropic client to simulate API key validation
         mock_client = MagicMock()
         mock_anthropic.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="Test response")]
-        mock_client.messages.create.return_value = mock_response
     
-        if 'app' in sys.modules:
-            del sys.modules['app']
+        # Simulate different cases
+        test_cases = [
+            ('test-openai-key', None, "Chat with ChatGPT", False),
+            (None, 'test-claude-key', "Chat with Claude", False),
+            (None, None, "Chat with No Model Available", True),
+        ]
     
-        import app
-        response = app.app.test_client().get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Chat with Claude".encode(), response.data)
+        for openai_key, claude_key, expected_title, should_exit in test_cases:
+            # Reset mocks
+            mock_getenv.reset_mock()
+            mock_exit.reset_mock()
+    
+            # Mock environment variables
+            mock_getenv.side_effect = lambda x: {'OPENAI_API_KEY': openai_key, 'CLAUDE_API_KEY': claude_key}.get(x)
+    
+            if claude_key:
+                # Simulate successful Anthropic API key validation
+                mock_client.messages.create.return_value = MagicMock()
+    
+            try:
+                # Reload `app.py` to reinitialize with mocked environment variables
+                if 'app' in sys.modules:
+                    del sys.modules['app']
+                import app
+    
+                if should_exit:
+                    # Check if `sys.exit(1)` was called
+                    mock_exit.assert_called_once_with(1)
+                else:
+                    # Validate the response for the `/` route
+                    mock_exit.assert_not_called()
+                    response = app.app.test_client().get('/')
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn(expected_title.encode(), response.data)
+    
+            except SystemExit:
+                if not should_exit:
+                    self.fail("Unexpected system exit.")
 
     def test_insert_question_answer(self):
         question = 'Sample question'
