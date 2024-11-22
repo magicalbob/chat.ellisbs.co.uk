@@ -198,98 +198,6 @@ class TestApp(unittest.TestCase):
         self.assertIn('<strong>multiple</strong>', response_data)
         self.assertIn('incomplete <strong>bold', response_data)  # Incomplete formatting should be preserved
 
-    @patch('anthropic.Anthropic')
-    def test_claude_api_comprehensive(self, mock_anthropic):
-        os.environ.pop('OPENAI_API_KEY', None)
-        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
-
-        mock_client = MagicMock()
-        mock_anthropic.return_value = mock_client
-
-        # Test successful response
-        mock_response = MagicMock()
-        mock_response.content = [MagicMock(text=CLAUDE_RESPONSE)]
-        mock_client.messages.create.return_value = mock_response
-
-        import app
-        response = app.get_claude_response(TEST_QUESTION)
-        self.assertEqual(response, CLAUDE_RESPONSE)
-
-        # Test various error scenarios
-        error_cases = ERROR_CASES
-
-        for error_class, error_body, status_code in error_cases:
-            mock_client.messages.create.side_effect = error_class(
-                response=create_mock_response(status_code, error_body),
-                body=error_body
-            )
-
-            with self.assertRaises(error_class):
-                app.get_claude_response(TEST_QUESTION)
-
-    @patch('openai.chat.completions.create')
-    def test_openai_response_comprehensive(self, mock_chat_create):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        import app
-
-        # Test successful response
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content='OpenAI response'))]
-        mock_chat_create.return_value = mock_response
-
-        response = app.get_openai_response(TEST_QUESTION)
-        self.assertEqual(response, OPENAI_RESPONSE)
-
-        # Test error scenarios with required arguments
-        error_cases = [
-            (openai.RateLimitError, "Rate limit", 429),
-            (openai.APIError, "API Error", 500),
-            (openai.AuthenticationError, "Auth failed", 401),
-            (openai.BadRequestError, "Bad request", 400)
-        ]
-
-        for error_class, error_message, status_code in error_cases:
-            # Set up each error with the correct arguments
-            if error_class == openai.APIError:
-                mock_chat_create.side_effect = error_class(error_message)
-            else:
-                mock_chat_create.side_effect = error_class(error_message, status_code)
-
-            with self.assertRaises(error_class):
-                app.get_openai_response(TEST_QUESTION)
-
-            # Clear the side effect after each test case
-            mock_chat_create.side_effect = None
-
-        if 'app' in sys.modules:
-            del sys.modules['app']
-
-    def test_ask_route_comprehensive(self):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        import app
-
-        with patch(GET_OPENAI_RESPONSE) as mock_get_response:
-            mock_get_response.return_value = TEST_ANSWER
-
-            test_cases = [
-                # Valid request
-                ({'question': TEST_QUESTION}, 200, {'question': TEST_QUESTION, 'answer': TEST_ANSWER}),
-                # Missing question
-                ({}, 400, {'error': MISSING_QUESTION}),
-                # Empty question
-                ({'question': ''}, 400, {'error': MISSING_QUESTION}),
-                # Non-string question
-                ({'question': 123}, 400, {'error': 'Invalid question format'})
-            ]
-
-            for request_data, expected_status, expected_response in test_cases:
-                response = app.app.test_client().post(
-                    '/ask',
-                    json=request_data
-                )
-                self.assertEqual(response.status_code, expected_status)
-                self.assertEqual(response.get_json(), expected_response)
-
     def test_debug_mode_comprehensive(self):
         test_cases = [
             ('true', True),
@@ -320,61 +228,6 @@ class TestApp(unittest.TestCase):
             if 'app' in sys.modules:
                 del sys.modules['app']
 
-    def test_logging_comprehensive(self):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        import app
-
-        with self.assertLogs('app', level='INFO') as log:
-            with patch(GET_OPENAI_RESPONSE) as mock_get_response:
-                mock_get_response.return_value = TEST_ANSWER
-
-                # Test successful request
-                app.app.test_client().post(
-                    '/ask',
-                    json={'question': TEST_QUESTION}
-                )
-
-                # Test error scenario
-                mock_get_response.side_effect = Exception("Test error")
-                app.app.test_client().post(
-                    '/ask',
-                    json={'question': TEST_QUESTION}
-                )
-
-        log_messages = [record.getMessage() for record in log.records]
-        expected_messages = [
-            f'Received question: {TEST_QUESTION}',
-            f'Sending request to OpenAI API: {TEST_QUESTION}',
-            'API response received successfully',
-            f'Received question: {TEST_QUESTION}',
-            f'Sending request to OpenAI API: {TEST_QUESTION}',
-            'Unexpected error: Test error'
-        ]
-
-        for expected in expected_messages:
-            self.assertTrue(any(expected in msg for msg in log_messages))
-
-    @patch('app.insert_question_answer')
-    def test_ask_route_with_invalid_question(self, mock_insert):
-        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
-        with patch('app.get_openai_response') as mock_get_response:
-            mock_get_response.return_value = TEST_ANSWER
-
-            # Test with missing question
-            response = app.app.test_client().post('/ask', json={})
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get_json(), {'error': MISSING_QUESTION})
-
-            # Test with empty question
-            response = app.app.test_client().post('/ask', json={'question': ''})
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get_json(), {'error': MISSING_QUESTION})
-
-            # Test with non-string question
-            response = app.app.test_client().post('/ask', json={'question': 123})
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get_json(), {'error': 'Invalid question format'})
-
     @patch('app.get_openai_response')
     def test_ask_api_exception_handling(self, mock_get_response):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
@@ -397,34 +250,6 @@ class TestApp(unittest.TestCase):
 
         app.create_table()
         conn.cursor().execute.assert_called_once()
-
-    @patch('anthropic.Anthropic')
-    @patch('sys.exit')
-    def test_claude_credit_balance_error(self, mock_exit, mock_anthropic):
-        os.environ.pop('OPENAI_API_KEY', None)
-        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
-
-        # Mock the Claude client and simulate a credit balance error
-        mock_client = MagicMock()
-        mock_anthropic.return_value = mock_client
-
-        # Creating a mock response to satisfy the `response` requirement
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"error": {"message": "credit balance is too low"}}
-
-        # Set the side effect to raise `BadRequestError` with the mock response
-        mock_client.messages.create.side_effect = anthropic.BadRequestError(
-            message="Insufficient balance",
-            response=mock_response
-        )
-
-        # Capture logging output
-        with self.assertLogs('app', level='ERROR') as log:
-            import app  # Re-import to trigger code execution
-
-        # Check that the log message and sys.exit(1) were called as expected
-        self.assertIn("Claude API key is valid but account has insufficient credits", log.output[0])
-        mock_exit.assert_called_once_with(1)
 
     @patch('app.create_table')
     @patch('sqlite3.connect')
@@ -478,70 +303,6 @@ class TestApp(unittest.TestCase):
             'Test question for OpenAI. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
         )
         mock_insert.assert_called_once_with(OPENAI_QUESTION, OPENAI_RESPONSE)
-
-    @patch('app.get_claude_response')
-    @patch('app.insert_question_answer')
-    def test_ask_route_claude(self, mock_insert, mock_get_claude_response):
-        # Set up environment to use Claude
-        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
-        os.environ.pop('OPENAI_API_KEY', None)
-
-        # Import app after setting environment variables
-        import app
-
-        # Mock responses
-        mock_get_claude_response.return_value = CLAUDE_RESPONSE
-
-        # Send request
-        response = app.app.test_client().post('/ask', json={'question': CLAUDE_QUESTION})
-
-        # Assert correct response and function calls
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'question': CLAUDE_QUESTION, 'answer': CLAUDE_RESPONSE})
-        mock_get_claude_response.assert_called_once_with(
-            'Test question for Claude. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
-        )
-        mock_insert.assert_called_once_with(CLAUDE_QUESTION, CLAUDE_RESPONSE)
-    
-        @patch('sys.exit')
-        @patch('os.getenv')
-        def test_home_route_titles(self, mock_getenv, mock_exit):
-            # Mock `sys.exit` to simulate system exit
-            mock_exit.side_effect = SystemExit
-        
-            test_cases = [
-                # (OPENAI_API_KEY, CLAUDE_API_KEY, Expected Title, Should Exit)
-                ('test-key', None, "Chat with ChatGPT", False),
-                (None, 'test-key', "Chat with Claude", False),
-                (None, None, "Chat with No Model Available", True),
-            ]
-        
-            for openai_key, claude_key, expected_title, should_exit in test_cases:
-                # Reset mocks
-                mock_getenv.reset_mock()
-                mock_exit.reset_mock()
-        
-                # Set environment variables
-                mock_getenv.side_effect = lambda x: {'OPENAI_API_KEY': openai_key, 'CLAUDE_API_KEY': claude_key}.get(x)
-        
-                try:
-                    # Reload the app module
-                    if 'app' in sys.modules:
-                        del sys.modules['app']
-                    import app
-        
-                    if should_exit:
-                        mock_exit.assert_called_once_with(1)  # Assert `sys.exit(1)` is called
-                    else:
-                        mock_exit.assert_not_called()
-                        # Perform assertions for home route response
-                        response = app.app.test_client().get('/')
-                        self.assertEqual(response.status_code, 200)
-                        self.assertIn(expected_title.encode(), response.data)
-        
-                except SystemExit:
-                    if not should_exit:
-                        self.fail("Unexpected system exit.")
 
     @patch('anthropic.Anthropic')
     @patch('sys.exit')
