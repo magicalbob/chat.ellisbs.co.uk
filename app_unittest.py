@@ -366,5 +366,17 @@ class TestApp(unittest.TestCase):
             mock_db.commit.assert_called_once()
             mock_db.close.assert_called_once()
 
+    @patch('sys.exit')
+    def test_missing_environment_variables(self, mock_exit):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ.pop('CLAUDE_API_KEY', None)
+        
+        try:
+            import app
+        except SystemExit:
+            pass
+    
+        mock_exit.assert_called_once_with(1)
+
 if __name__ == '__main__':
     unittest.main()
