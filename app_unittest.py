@@ -551,5 +551,15 @@ class TestApp(unittest.TestCase):
             )
         ])
 
+    @patch('openai.chat.completions.create')
+    def test_get_openai_response_success(self, mock_create):
+        os.environ['OPENAI_API_KEY'] = 'valid-openai-key'
+        import app
+        
+        mock_create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="OpenAI response"))])
+        
+        response = app.get_openai_response("Test question")
+        self.assertEqual(response, "OpenAI response")
+
 if __name__ == '__main__':
     unittest.main()
