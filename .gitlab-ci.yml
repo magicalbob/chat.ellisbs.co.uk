@@ -29,6 +29,7 @@ test_npm_job:
   script:
     - npm install
     - npm install --save-dev jest-environment-jsdom
+    - npm install showdown
     - npx jest --coverage
   artifacts:
     paths:

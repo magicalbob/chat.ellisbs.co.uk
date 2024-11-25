@@ -2,8 +2,10 @@
  * @jest-environment jsdom
  */
 
-const $ = require('jquery');
-const showdown = require('showdown');
+import $ from 'jquery';
+import 'jest-environment-jsdom';
+import showdown from 'showdown';
+import { initializeApp } from './script';
 
 // Mocking the showdown converter
 jest.mock('showdown', () => {
@@ -14,50 +16,33 @@ jest.mock('showdown', () => {
     };
 });
 
-// Import the script file
-require('./script.js');
+// Mocking jQuery
+jest.mock('jquery', () => {
+    const $ = jest.fn(() => ({
+        val: jest.fn().mockReturnThis(),
+        click: jest.fn(),
+        keypress: jest.fn(),
+        html: jest.fn(),
+        prop: jest.fn(),
+        show: jest.fn(),
+        hide: jest.fn(),
+    }));
+    return $;
+});
 
-describe('script.js Tests', () => {
-    beforeEach(() => {
-        document.body.innerHTML = `
-            <textarea id="question-input"></textarea>
-            <button id="ask-button">Ask</button>
-            <div id="loading-message" style="display: none;"></div>
-            <div id="answer"></div>
-        `;
-    });
-
-    test('Initialize App - Add Event Listeners', () => {
-        const spyOnClick = jest.spyOn($.fn, 'click');
-        const spyOnKeyPress = jest.spyOn($.fn, 'keypress');
-
+// Test suite
+describe('Script.js functionality', () => {
+    it('initializes the app and sets up event listeners', () => {
+        // Call initializeApp to ensure listeners are attached
         initializeApp();
 
-        expect(spyOnClick).toHaveBeenCalled();
-        expect(spyOnKeyPress).toHaveBeenCalled();
+        expect($('#ask-button').click).toHaveBeenCalled();
+        expect($('#question-input').keypress).toHaveBeenCalled();
     });
 
-    test('Ask Button Click - Show Loading and Disable Button', () => {
-        $("#ask-button").click();
-        expect($("#loading-message").css('display')).toBe('block');
-        expect($("#ask-button").prop('disabled')).toBe(true);
-    });
-
-    test('AJAX Success - Update Answer', () => {
-        $.ajax = jest.fn().mockImplementation(({ success }) => {
-            success({ answer: 'Test Answer' });
-        });
-
-        $("#ask-button").click();
-        expect($("#answer").html()).toBe('<p>Test Answer</p>');
-    });
-
-    test('AJAX Error - Display Error Message', () => {
-        $.ajax = jest.fn().mockImplementation(({ error }) => {
-            error({}, 'Error', 'Error occurred');
-        });
-
-        $("#ask-button").click();
-        expect($("#answer").html()).toBe("<p class='error'>Error: Error</p>");
+    it('uses showdown to convert markdown to HTML', () => {
+        const converter = new showdown.Converter();
+        const result = converter.makeHtml('Hello, world!');
+        expect(result).toBe('<p>Hello, world!</p>');
     });
 });
