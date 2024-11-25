@@ -401,5 +401,11 @@ class TestApp(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'Chat with', response.data)
 
+    def test_chat_history_route(self):
+        with app.app.test_client() as client:
+            response = client.get('/chat_history')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'<strong>Question:</strong>', response.data)
+
 if __name__ == '__main__':
     unittest.main()
