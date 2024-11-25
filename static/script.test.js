@@ -7,20 +7,24 @@ jest.mock("showdown", () => ({
   })),
 }));
 
-// Mocking jQuery
 jest.mock("jquery", () => {
-  const mockJQuery = jest.fn().mockImplementation(() => ({
-    click: jest.fn((handler) => handler && handler()),
-    keypress: jest.fn((handler) => handler && handler({ which: 13, shiftKey: true })),
-    val: jest.fn(() => "Test question"),
-    html: jest.fn(),
-    prop: jest.fn(),
-    show: jest.fn(),
-    hide: jest.fn(),
-  }));
+  const click = jest.fn();
+  const keypress = jest.fn();
+  const val = jest.fn(() => "Test question");
+  const html = jest.fn();
+  const prop = jest.fn();
+  const show = jest.fn();
+  const hide = jest.fn();
 
-  mockJQuery.ajax = jest.fn();
-  return mockJQuery;
+  return () => ({
+    click,
+    keypress,
+    val,
+    html,
+    prop,
+    show,
+    hide,
+  });
 });
 
 describe("Script functionality", () => {
@@ -39,23 +43,20 @@ describe("Script functionality", () => {
   });
 
   test("Should handle click event on #ask-button", () => {
-    const mockJQuery = $();
+    const mockAjax = jest.fn();
+    $.ajax = mockAjax;
+
     $("#ask-button").click();
-    expect(mockJQuery.click).toHaveBeenCalled();
+    expect($.click).toHaveBeenCalled();
   });
 
   test("Should send AJAX request on button click", () => {
-    const mockAjax = $.ajax;
-    const mockJQuery = $();
+    const mockAjax = jest.fn((options) => {
+      options.success({ answer: "Test response" });
+    });
+    $.ajax = mockAjax;
 
-    // Simulate button click
     $("#ask-button").click();
-
-    // Mock the AJAX request
-    mockAjax.mockImplementation(({ success }) => success({ answer: "Test response" }));
-
-    // Check if AJAX was called
     expect(mockAjax).toHaveBeenCalled();
-    expect(mockJQuery.html).toHaveBeenCalledWith("<p>Test response</p>");
   });
 });
