@@ -488,5 +488,30 @@ class TestApp(unittest.TestCase):
         import app  # This won't raise SystemExit because we mocked sys.exit
         mock_exit.assert_called_once_with(1)
 
+    @patch('anthropic.Anthropic')
+    def test_claude_api_validation_success(self, mock_anthropic):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ['CLAUDE_API_KEY'] = 'valid-claude-key'
+        
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        mock_client.messages.create.return_value = MagicMock(content=[MagicMock(text="test")])
+        
+        import app
+        self.assertIsNotNone(app.CLAUDE_API_KEY)
+    
+    @patch('anthropic.Anthropic')
+    def test_claude_api_validation_failure(self, mock_anthropic):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ['CLAUDE_API_KEY'] = 'invalid-claude-key'
+        
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        mock_client.messages.create.side_effect = Exception("Validation failed")
+        
+        with self.assertRaises(SystemExit) as cm:
+            import app
+        self.assertEqual(cm.exception.code, 1)
+
 if __name__ == '__main__':
     unittest.main()
