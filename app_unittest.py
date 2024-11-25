@@ -385,5 +385,15 @@ class TestApp(unittest.TestCase):
             app.get_openai_response("Test OpenAI Question")
         self.assertIn("API Error", str(cm.exception))
 
+    @patch('sys.exit')
+    def test_no_api_keys(self, mock_exit):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ.pop('CLAUDE_API_KEY', None)
+        try:
+            import app
+        except SystemExit:
+            pass
+        mock_exit.assert_called_once_with(1)
+
 if __name__ == '__main__':
     unittest.main()
