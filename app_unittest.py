@@ -513,5 +513,43 @@ class TestApp(unittest.TestCase):
             import app
         self.assertEqual(cm.exception.code, 1)
 
+    @patch('anthropic.Anthropic')
+    def test_get_claude_response_success(self, mock_anthropic):
+        os.environ['CLAUDE_API_KEY'] = 'valid-claude-key'
+        os.environ.pop('OPENAI_API_KEY', None)
+        
+        # Set up mock client
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        
+        # Set up mock responses for both the validation call and the test call
+        validation_response = MagicMock()
+        validation_response.content = [MagicMock(text="test")]
+        
+        test_response = MagicMock()
+        test_response.content = [MagicMock(text="Claude response")]
+        
+        mock_client.messages.create.side_effect = [validation_response, test_response]
+        
+        import app
+        response = app.get_claude_response("Test question")
+        self.assertEqual(response, "Claude response")
+        
+        # Verify both calls were made with correct parameters
+        mock_client.messages.create.assert_has_calls([
+            # First call - API validation
+            call(
+                model="claude-3-sonnet-20240229",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "test"}]
+            ),
+            # Second call - actual test
+            call(
+                model="claude-3-sonnet-20240229",
+                messages=[{"role": "user", "content": "Test question"}],
+                max_tokens=1024
+            )
+        ])
+
 if __name__ == '__main__':
     unittest.main()
