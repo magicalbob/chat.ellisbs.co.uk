@@ -1,26 +1,32 @@
 import $ from "jquery";
 import showdown from "showdown";
-import { jest } from "@jest/globals";
 
-// Mock showdown
 jest.mock("showdown", () => ({
   Converter: jest.fn(() => ({
-    makeHtml: jest.fn((text) => `<p>${text}</p>`)
-  }))
+    makeHtml: jest.fn((text) => `<p>${text}</p>`),
+  })),
 }));
 
-// Mock jQuery
-jest.mock("jquery", () => ({
-  click: jest.fn(),
-  keypress: jest.fn(),
-  val: jest.fn(() => "Test question"),
-  html: jest.fn(),
-  prop: jest.fn(),
-  show: jest.fn(),
-  hide: jest.fn()
-}));
+jest.mock("jquery", () => {
+  const click = jest.fn();
+  const keypress = jest.fn();
+  const val = jest.fn(() => "Test question");
+  const html = jest.fn();
+  const prop = jest.fn();
+  const show = jest.fn();
+  const hide = jest.fn();
 
-// Sample test cases
+  return () => ({
+    click,
+    keypress,
+    val,
+    html,
+    prop,
+    show,
+    hide,
+  });
+});
+
 describe("Script functionality", () => {
   let mockConverter;
 
