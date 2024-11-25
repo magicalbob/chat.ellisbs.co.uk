@@ -480,5 +480,13 @@ class TestApp(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    @patch('sys.exit')
+    def test_missing_api_keys(self, mock_exit):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ.pop('CLAUDE_API_KEY', None)
+        
+        import app  # This won't raise SystemExit because we mocked sys.exit
+        mock_exit.assert_called_once_with(1)
+
 if __name__ == '__main__':
     unittest.main()
