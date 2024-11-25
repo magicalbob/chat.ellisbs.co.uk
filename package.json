@@ -13,14 +13,19 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "@babel/core": "^7.22.11",
+    "@babel/preset-env": "^7.22.11",
+    "babel-jest": "^29.7.0"
   },
   "jest": {
     "testEnvironment": "jsdom",
     "coverageDirectory": "./javascript-coverage",
     "collectCoverage": true,
     "collectCoverageFrom": ["static/script.js"],
-    "transform": {}
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    }
   },
   "author": "Your Name",
   "license": "MIT"
