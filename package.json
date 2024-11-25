@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "coverageReporters": ["lcov", "text", "cobertura"],
+    "collectCoverageFrom": [
+      "static/*.js"
+    ]
+  }
+}

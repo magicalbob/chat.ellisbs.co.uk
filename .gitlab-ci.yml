@@ -7,7 +7,7 @@ variables:
   GIT_STRATEGY: clone  # Ensure full clone is used in all jobs
   GIT_DEPTH: 0         # Disable shallow clone for all jobs
 
-test_job:
+test_python_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
   stage: test
   tags:
@@ -16,10 +16,25 @@ test_job:
     - python3 -m venv /tmp/venv
     - source /tmp/venv/bin/activate
     - ./testscript.sh
+    - mv coverage.xml python-coverage.xml
   artifacts:
     paths:
-      - coverage.xml
+      - python-coverage.xml
 
+test_npm_job:
+  image: docker.ellisbs.co.uk:5190/node:18-alpine
+  stage: test
+  tags:
+    - linux
+  script:
+    - npm install
+    - npx jest --coverage
+    - cp coverage/lcov.info javascript-coverage-lcov.info
+    - mv coverage/lcov-report javascript-coverage-lcov-report
+  artifacts:
+    paths:
+      - javascript-coverage-lcov.info
+      - javascript-coverage-lcov-report
 scan_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
   stage: scan
@@ -30,7 +45,10 @@ scan_job:
     - curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip
     - unzip -n /tmp/sonar-scanner.zip
     - popd
-    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN
+    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.python.coverage.reportPaths=python-coverage.xml \
+        -Dsonar.javascript.lcov.reportPaths=javascript-coverage-lcov.info
   dependencies:
-    - test_job
-
+    - test_python_job
+    - test_npm_job
