@@ -31,7 +31,6 @@ test_npm_job:
   artifacts:
     paths:
       - javascript-coverage
-      - javascript-coverage/lcov-report
 
 scan_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
