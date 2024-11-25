@@ -1,5 +1,6 @@
 import $ from "jquery";
 import showdown from "showdown";
+import '../static/script.js';  // Add this at the top of your test file
 
 jest.mock("showdown", () => ({
   Converter: jest.fn(() => ({
@@ -8,23 +9,27 @@ jest.mock("showdown", () => ({
 }));
 
 jest.mock("jquery", () => {
-  const click = jest.fn();
-  const keypress = jest.fn();
-  const val = jest.fn(() => "Test question");
-  const html = jest.fn();
-  const prop = jest.fn();
-  const show = jest.fn();
-  const hide = jest.fn();
+    const $ = function(selector) {
+        return {
+            click: jest.fn(function(handler) {
+                if (handler) {
+                    handler();
+                }
+                return this;
+            }),
+            keypress: jest.fn(),
+            val: jest.fn(() => "Test question"),
+            html: jest.fn(),
+            prop: jest.fn(),
+            show: jest.fn(),
+            hide: jest.fn()
+        };
+    };
 
-  return () => ({
-    click,
-    keypress,
-    val,
-    html,
-    prop,
-    show,
-    hide,
-  });
+    // Add ajax method to $ directly
+    $.ajax = jest.fn();
+
+    return $;
 });
 
 describe("Script functionality", () => {
@@ -43,20 +48,28 @@ describe("Script functionality", () => {
   });
 
   test("Should handle click event on #ask-button", () => {
-    const mockAjax = jest.fn();
-    $.ajax = mockAjax;
-
-    $("#ask-button").click();
-    expect($.click).toHaveBeenCalled();
+      const button = $("#ask-button");
+      expect(button.click).toBeDefined();
+      button.click();
+      expect(button.click).toHaveBeenCalled();
   });
 
   test("Should send AJAX request on button click", () => {
-    const mockAjax = jest.fn((options) => {
-      options.success({ answer: "Test response" });
-    });
-    $.ajax = mockAjax;
-
-    $("#ask-button").click();
-    expect(mockAjax).toHaveBeenCalled();
+      const mockAjax = jest.fn().mockImplementation((options) => {
+          if (options.success) {
+              options.success({ answer: "Test response" });
+          }
+          return { fail: jest.fn() };
+      });
+      $.ajax = mockAjax;
+  
+      $("#ask-button").click();
+      
+      expect(mockAjax).toHaveBeenCalledWith(expect.objectContaining({
+          url: '/ask',
+          method: 'POST',
+          contentType: 'application/json',
+          data: expect.any(String)
+      }));
   });
 });
