@@ -3,10 +3,9 @@
     "test": "jest --coverage"
   },
   "jest": {
+    "testEnvironment": "jest-environment-jsdom",
     "collectCoverage": true,
-    "coverageReporters": ["lcov", "text", "cobertura"],
-    "collectCoverageFrom": [
-      "static/*.js"
-    ]
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["lcov", "text"]
   }
 }

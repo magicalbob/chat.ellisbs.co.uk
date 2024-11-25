@@ -28,13 +28,13 @@ test_npm_job:
     - linux
   script:
     - npm install
+    - npm install --save-dev jest-environment-jsdom
     - npx jest --coverage
-    - cp coverage/lcov.info javascript-coverage-lcov.info
-    - mv coverage/lcov-report javascript-coverage-lcov-report
   artifacts:
     paths:
       - javascript-coverage-lcov.info
       - javascript-coverage-lcov-report
+
 scan_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
   stage: scan
