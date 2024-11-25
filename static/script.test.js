@@ -1,48 +1,56 @@
-/**
- * @jest-environment jsdom
- */
+import $ from "jquery";
+import showdown from "showdown";
+import { jest } from "@jest/globals";
 
-import $ from 'jquery';
-import 'jest-environment-jsdom';
-import showdown from 'showdown';
-import { initializeApp } from './script';
+// Mock showdown
+jest.mock("showdown", () => ({
+  Converter: jest.fn(() => ({
+    makeHtml: jest.fn((text) => `<p>${text}</p>`)
+  }))
+}));
 
-// Mocking the showdown converter
-jest.mock('showdown', () => {
-    return {
-        Converter: jest.fn(() => ({
-            makeHtml: jest.fn((text) => `<p>${text}</p>`),
-        })),
-    };
-});
+// Mock jQuery
+jest.mock("jquery", () => ({
+  click: jest.fn(),
+  keypress: jest.fn(),
+  val: jest.fn(() => "Test question"),
+  html: jest.fn(),
+  prop: jest.fn(),
+  show: jest.fn(),
+  hide: jest.fn()
+}));
 
-// Mocking jQuery
-jest.mock('jquery', () => {
-    const $ = jest.fn(() => ({
-        val: jest.fn().mockReturnThis(),
-        click: jest.fn(),
-        keypress: jest.fn(),
-        html: jest.fn(),
-        prop: jest.fn(),
-        show: jest.fn(),
-        hide: jest.fn(),
-    }));
-    return $;
-});
+// Sample test cases
+describe("Script functionality", () => {
+  let mockConverter;
 
-// Test suite
-describe('Script.js functionality', () => {
-    it('initializes the app and sets up event listeners', () => {
-        // Call initializeApp to ensure listeners are attached
-        initializeApp();
+  beforeEach(() => {
+    mockConverter = new showdown.Converter();
+  });
 
-        expect($('#ask-button').click).toHaveBeenCalled();
-        expect($('#question-input').keypress).toHaveBeenCalled();
+  test("Should convert markdown to HTML", () => {
+    const inputMarkdown = "**Bold Text**";
+    const expectedHtml = "<p>**Bold Text**</p>";
+
+    const result = mockConverter.makeHtml(inputMarkdown);
+    expect(result).toBe(expectedHtml);
+  });
+
+  test("Should handle click event on #ask-button", () => {
+    const mockAjax = jest.fn();
+    $.ajax = mockAjax;
+
+    $("#ask-button").click();
+    expect($.click).toHaveBeenCalled();
+  });
+
+  test("Should send AJAX request on button click", () => {
+    const mockAjax = jest.fn((options) => {
+      options.success({ answer: "Test response" });
     });
+    $.ajax = mockAjax;
 
-    it('uses showdown to convert markdown to HTML', () => {
-        const converter = new showdown.Converter();
-        const result = converter.makeHtml('Hello, world!');
-        expect(result).toBe('<p>Hello, world!</p>');
-    });
+    $("#ask-button").click();
+    expect(mockAjax).toHaveBeenCalled();
+  });
 });

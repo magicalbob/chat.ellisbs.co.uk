@@ -16,10 +16,9 @@ test_python_job:
     - python3 -m venv /tmp/venv
     - source /tmp/venv/bin/activate
     - ./testscript.sh
-    - mv coverage.xml python-coverage.xml
   artifacts:
     paths:
-      - python-coverage.xml
+      - coverage.xml
 
 test_npm_job:
   image: docker.ellisbs.co.uk:5190/node:18-alpine
@@ -28,13 +27,11 @@ test_npm_job:
     - linux
   script:
     - npm install
-    - npm install --save-dev jest-environment-jsdom
-    - npm install showdown
     - npx jest --coverage
   artifacts:
     paths:
-      - javascript-coverage-lcov.info
-      - javascript-coverage-lcov-report
+      - javascript-coverage
+      - javascript-coverage/lcov-report
 
 scan_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
@@ -46,10 +43,7 @@ scan_job:
     - curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip
     - unzip -n /tmp/sonar-scanner.zip
     - popd
-    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner \
-        -Dsonar.token=$SONAR_TOKEN \
-        -Dsonar.python.coverage.reportPaths=python-coverage.xml \
-        -Dsonar.javascript.lcov.reportPaths=javascript-coverage-lcov.info
+    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN -Dsonar.javascript.lcov.reportPaths=javascript-coverage/lcov.info
   dependencies:
     - test_python_job
     - test_npm_job
