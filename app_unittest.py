@@ -395,5 +395,11 @@ class TestApp(unittest.TestCase):
             pass
         mock_exit.assert_called_once_with(1)
 
+    def test_home_route(self):
+        with app.app.test_client() as client:
+            response = client.get('/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Chat with', response.data)
+
 if __name__ == '__main__':
     unittest.main()
