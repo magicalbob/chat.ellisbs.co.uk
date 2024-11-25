@@ -407,5 +407,78 @@ class TestApp(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'<strong>Question:</strong>', response.data)
 
+    @patch('anthropic.Anthropic')
+    def test_claude_api_validation_success(self, mock_anthropic):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
+        
+        # Mock successful API validation
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text="test")]
+        mock_client.messages.create.return_value = mock_response
+        
+        import app
+        self.assertIsNotNone(app.CLAUDE_API_KEY)
+    
+    @patch('anthropic.Anthropic')
+    def test_claude_api_validation_error(self, mock_anthropic):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ['CLAUDE_API_KEY'] = 'test-claude-key'
+        
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+        mock_client.messages.create.side_effect = Exception("API validation error")
+        
+        with self.assertRaises(SystemExit) as cm:
+            import app
+        self.assertEqual(cm.exception.code, 1)
+    
+    @patch('app.get_openai_response')
+    def test_ask_rate_limit_retry(self, mock_get_response):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        import app
+        
+        # Simulate 3 rate limit errors then success
+        side_effects = [
+            openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=create_mock_response(429, {"error": {"message": "Rate limit"}}),
+                body={"error": {"message": "Rate limit"}}
+            ),
+            openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=create_mock_response(429, {"error": {"message": "Rate limit"}}),
+                body={"error": {"message": "Rate limit"}}
+            ),
+            "Success response"
+        ]
+        mock_get_response.side_effect = side_effects
+        
+        with patch('time.sleep') as mock_sleep:
+            response = app.app.test_client().post('/ask', json={'question': TEST_QUESTION})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['answer'], "Success response")
+            self.assertEqual(mock_sleep.call_count, 2)  # Called twice for retries
+    
+    @patch('sqlite3.connect')
+    def test_insert_question_answer_database_error(self, mock_connect):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        mock_connect.side_effect = sqlite3.Error("Database error")
+        
+        with self.assertRaises(sqlite3.Error):
+            app.insert_question_answer("test", "test")
+    
+    def test_ask_invalid_json(self):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        
+        response = app.app.test_client().post(
+            '/ask',
+            data='invalid json',
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+
 if __name__ == '__main__':
     unittest.main()
