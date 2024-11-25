@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "name": "chat-app",
   "version": "1.0.0",
   "description": "A chat application with Markdown rendering and JavaScript tests.",
