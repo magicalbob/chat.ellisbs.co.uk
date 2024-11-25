@@ -561,5 +561,31 @@ class TestApp(unittest.TestCase):
         response = app.get_openai_response("Test question")
         self.assertEqual(response, "OpenAI response")
 
+    def test_chat_history_formatting(self):
+        os.environ['OPENAI_API_KEY'] = 'test-openai-key'
+        import app
+    
+        test_data = [
+            ("Q1", "A1 with no bold"),
+            ("Q2", "A2 with **bold** text"),
+            ("Q3", "A3 with incomplete **bold")
+        ]
+    
+        for question, answer in test_data:
+            app.insert_question_answer(question, answer)
+    
+        response = app.app.test_client().get('/chat_history')
+        self.assertEqual(response.status_code, 200)
+        response_data = response.data.decode('utf-8')
+    
+        # Test complete bold marker conversion
+        self.assertIn("<strong>bold</strong>", response_data)
+        
+        # Test incomplete bold marker handling
+        self.assertIn("Answer with incomplete <strong>bold", response_data)  
+        
+        # Test text without any markers
+        self.assertIn("A1 with no bold", response_data)
+
 if __name__ == '__main__':
     unittest.main()
