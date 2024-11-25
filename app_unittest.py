@@ -587,5 +587,15 @@ class TestApp(unittest.TestCase):
         # Test text without any markers
         self.assertIn("A1 with no bold", response_data)
 
+    @patch('openai.chat.completions.create')
+    def test_get_openai_response_success(self, mock_create):
+        os.environ['OPENAI_API_KEY'] = 'valid-openai-key'
+        
+        mock_create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="OpenAI response"))])
+        
+        import app
+        response = app.get_openai_response("Test question")
+        self.assertEqual(response, "OpenAI response")
+
 if __name__ == '__main__':
     unittest.main()
