@@ -378,5 +378,12 @@ class TestApp(unittest.TestCase):
     
         mock_exit.assert_called_once_with(1)
 
+    @patch('openai.chat.completions.create')
+    def test_openai_response_handling(self, mock_create):
+        mock_create.side_effect = Exception("API Error")
+        with self.assertRaises(Exception) as cm:
+            app.get_openai_response("Test OpenAI Question")
+        self.assertIn("API Error", str(cm.exception))
+
 if __name__ == '__main__':
     unittest.main()
