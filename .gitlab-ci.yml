@@ -26,7 +26,7 @@ test_npm_job:
   tags:
     - linux
   script:
-    - npm install
+    - npm install jest jest-environment-jsdom @jest/globals --save-dev
     - npx jest --coverage
   artifacts:
     paths:
