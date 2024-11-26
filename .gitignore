@@ -3,3 +3,6 @@ __pycache__
 .scannerwork
 coverage.xml
 chat_history.db
+javascript-coverage
+node_modules
+package-lock.json
