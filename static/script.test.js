@@ -75,4 +75,71 @@ describe("Script functionality", () => {
       })
     );
   });
+
+  test("Should handle error response from server", async () => {
+      // Clear mocks
+      jest.clearAllMocks();
+  
+      // Create spy functions
+      const showSpy = jest.fn();
+      const hideSpy = jest.fn();
+      const propSpy = jest.fn();
+      const htmlSpy = jest.fn();
+      const valSpy = jest.fn().mockReturnValue("Test question");
+      
+      // Store click handler
+      let clickHandler = null;
+  
+      // Create jQuery element mock
+      const elementMock = {
+          show: showSpy,
+          hide: hideSpy,
+          prop: propSpy,
+          html: htmlSpy,
+          val: valSpy,
+          click: jest.fn(handler => {
+              if (handler) {
+                  clickHandler = handler;
+              } else if (clickHandler) {
+                  clickHandler();
+              }
+              return elementMock;
+          })
+      };
+  
+      // Create jQuery function mock
+      const jQueryMock = jest.fn(selector => elementMock);
+      jQueryMock.ajax = jest.fn(options => {
+          if (options.error) {
+              options.error({}, "Server Error", "Internal Server Error");
+          }
+      });
+  
+      // Replace global jQuery
+      global.$ = jQueryMock;
+  
+      // Initialize app which will set up click handler
+      initializeApp(showdown);
+  
+      // Manually trigger the click handler
+      if (clickHandler) {
+          clickHandler();
+      }
+  
+      // Verify AJAX call
+      expect(jQueryMock.ajax).toHaveBeenCalledWith(expect.objectContaining({
+          url: "/chat/ask",
+          type: "post",
+          contentType: "application/json",
+          data: JSON.stringify({ question: "Test question" })
+      }));
+  
+      // Verify UI updates
+      expect(showSpy).toHaveBeenCalled();
+      expect(propSpy).toHaveBeenCalledWith("disabled", true);
+      expect(htmlSpy).toHaveBeenCalledWith("<p class='error'>Error: Server Error</p>");
+      expect(hideSpy).toHaveBeenCalled();
+      expect(propSpy).toHaveBeenCalledWith("disabled", false);
+  });
+
 });
