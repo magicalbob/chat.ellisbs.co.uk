@@ -22,12 +22,8 @@
     "testEnvironment": "jsdom",
     "coverageDirectory": "./javascript-coverage",
     "collectCoverage": true,
-    "collectCoverageFrom": [
-      "static/script.js"
-    ],
-    "transform": {
-      "^.+\\.js$": "babel-jest"
-    }
+    "collectCoverageFrom": ["static/script.js"],
+    "coverageReporters": ["text", "lcov"]
   },
   "author": "Your Name",
   "license": "MIT"
