@@ -141,5 +141,4 @@ describe("Script functionality", () => {
       expect(hideSpy).toHaveBeenCalled();
       expect(propSpy).toHaveBeenCalledWith("disabled", false);
   });
-
 });
