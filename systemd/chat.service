@@ -1,0 +1,15 @@
+[Unit]
+Description=Chatgpt Proxy
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=vagrant
+Group=vagrant
+Type=simple
+ExecStart=/bin/bash -c "/bin/chat.sh"
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
