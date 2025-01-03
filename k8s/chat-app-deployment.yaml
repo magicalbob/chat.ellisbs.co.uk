@@ -1,0 +1,51 @@
+--
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chat
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-app
+  namespace: chat
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chat-app
+  template:
+    metadata:
+      labels:
+        app: chat-app
+    spec:
+      containers:
+      - name: chat-app
+        image: docker.ellisbs.co.uk:5190/chat-app:2025.01.03a
+        ports:
+        - containerPort: 48080
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-secret
+              key: api_key
+# Un-comment if you want to use Claude instead of OpenAI
+#        - name: CLAUDE_API_KEY
+#          valueFrom:
+#            secretKeyRef:
+#              name: claude-secret
+#              key: api_key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-app
+  namespace: chat
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 48080
+  selector:
+    app: chat-app
