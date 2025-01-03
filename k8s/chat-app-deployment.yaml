@@ -1,4 +1,4 @@
---
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -10,7 +10,7 @@ metadata:
   name: chat-app
   namespace: chat
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: chat-app
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: chat-app
-        image: docker.ellisbs.co.uk:5190/chat-app:2025.01.03a
+        image: docker.ellisbs.co.uk:5190/chat-app:2025.01.01a
         ports:
         - containerPort: 48080
         env:
