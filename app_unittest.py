@@ -280,8 +280,9 @@ class TestApp(unittest.TestCase):
         # Commit should have been called once after a successful retry
         mock_conn.commit.assert_called_once()
 
+    @patch('app.insert_question_answer')  # Add this line
     @patch('app.get_openai_response')
-    def test_ask_route_openai(self, mock_insert, mock_get_openai_response):
+    def test_ask_route_openai(self, mock_get_openai_response, mock_insert):  # Fix parameter order
         # Set up environment to use OpenAI
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         os.environ.pop('CLAUDE_API_KEY', None)
@@ -380,10 +381,21 @@ class TestApp(unittest.TestCase):
         mock_exit.assert_called_once_with(1)
 
     @patch('openai.chat.completions.create')
+    def test_get_openai_response_success(self, mock_create):
+        os.environ['OPENAI_API_KEY'] = 'valid-openai-key'
+    
+        mock_create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="OpenAI response"))])
+    
+        import app
+        response = app.get_openai_response("Test question", "You are a helpful assistant.")  # Add this parameter
+        self.assertEqual(response, "OpenAI response")
+    
+    # Fix 3: test_openai_response_handling method - add system_prompt parameter
+    @patch('openai.chat.completions.create')
     def test_openai_response_handling(self, mock_create):
         mock_create.side_effect = Exception("API Error")
         with self.assertRaises(Exception) as cm:
-            app.get_openai_response("Test OpenAI Question")
+            app.get_openai_response("Test OpenAI Question", "You are a helpful assistant.")  # Add system_prompt
         self.assertIn("API Error", str(cm.exception))
 
     @patch('sys.exit')
@@ -552,16 +564,6 @@ class TestApp(unittest.TestCase):
             )
         ])
 
-    @patch('openai.chat.completions.create')
-    def test_get_openai_response_success(self, mock_create):
-        os.environ['OPENAI_API_KEY'] = 'valid-openai-key'
-        import app
-        
-        mock_create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="OpenAI response"))])
-        
-        response = app.get_openai_response("Test question")
-        self.assertEqual(response, "OpenAI response")
-
     def test_chat_history_formatting(self):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
@@ -587,16 +589,6 @@ class TestApp(unittest.TestCase):
         
         # Test text without any markers
         self.assertIn("A1 with no bold", response_data)
-
-    @patch('openai.chat.completions.create')
-    def test_get_openai_response_success(self, mock_create):
-        os.environ['OPENAI_API_KEY'] = 'valid-openai-key'
-        
-        mock_create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="OpenAI response"))])
-        
-        import app
-        response = app.get_openai_response("Test question")
-        self.assertEqual(response, "OpenAI response")
 
 if __name__ == '__main__':
     unittest.main()
