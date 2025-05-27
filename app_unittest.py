@@ -281,26 +281,27 @@ class TestApp(unittest.TestCase):
         mock_conn.commit.assert_called_once()
 
     @patch('app.get_openai_response')
-    @patch('app.insert_question_answer')
     def test_ask_route_openai(self, mock_insert, mock_get_openai_response):
         # Set up environment to use OpenAI
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         os.environ.pop('CLAUDE_API_KEY', None)
-
+    
         # Import app after setting environment variables
         import app
-
+    
         # Mock responses
         mock_get_openai_response.return_value = OPENAI_RESPONSE
-
-        # Send request
-        response = app.app.test_client().post('/ask', json={'question': OPENAI_QUESTION})
-
+    
+        # Send request with additional system prompt
+        system_prompt = "You are a friendly assistant."
+        response = app.app.test_client().post('/ask', json={'question': OPENAI_QUESTION, 'system_prompt': system_prompt})
+    
         # Assert correct response and function calls
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'question': OPENAI_QUESTION, 'answer': OPENAI_RESPONSE})
         mock_get_openai_response.assert_called_once_with(
-            'Test question for OpenAI. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.'
+            'Test question for OpenAI. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags.',
+            system_prompt  # Pass the system prompt here
         )
         mock_insert.assert_called_once_with(OPENAI_QUESTION, OPENAI_RESPONSE)
 

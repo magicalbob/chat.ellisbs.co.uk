@@ -58,24 +58,32 @@
     // Function to handle the "Ask" button click
     function askQuestion() {
         var questionInput = $("#question-input");
+        var systemPromptInput = $("#system-prompt-input");
         var question = questionInput.val().trim();
-
+        var systemPrompt = systemPromptInput.val().trim();
+    
         if (question !== "") {
             // Disable the input and button during the API request
             questionInput.prop("disabled", true);
+            systemPromptInput.prop("disabled", true);
             $("#ask-button").prop("disabled", true);
-
+    
             $.ajax({
                 url: "/chat/ask",
                 type: "post",
-                data: JSON.stringify({ question: question }),
+                data: JSON.stringify({ 
+                    question: question,
+                    system_prompt: systemPrompt // Send system prompt
+                }),
                 contentType: "application/json",
                 success: function(response) {
                     // Clear the input field and enable it and the button
                     questionInput.val("");
+                    systemPromptInput.val("You are a helpful assistant."); // Reset system prompt to default
                     questionInput.prop("disabled", false);
+                    systemPromptInput.prop("disabled", false);
                     $("#ask-button").prop("disabled", false);
-
+    
                     // Update the chat history after asking the question
                     updateChatHistory();
                 },
@@ -111,6 +119,7 @@
 </head>
 <body>
     <h1>{{ title }}</h1>
+    <textarea id="system-prompt-input" placeholder="Enter system prompt..." rows="2">You are a helpful assistant.</textarea>
     <textarea id="question-input" placeholder="Ask a question..." rows="4"></textarea>
     <button id="ask-button">Ask</button>
     <div id="chat-history"></div>

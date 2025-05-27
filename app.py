@@ -100,13 +100,13 @@ def get_claude_response(question):
         logger.error(f"Error in Claude API call: {str(e)}", exc_info=True)
         raise
 
-def get_openai_response(question):
+def get_openai_response(question, system_prompt):
     try:
         logger.info(f"Sending request to OpenAI API: {question}")
         response = openai.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": system_prompt},  # Use the system prompt here
                 {"role": "user", "content": question}
             ],
         )
@@ -130,22 +130,25 @@ def home():
 @app.route('/ask', methods=['POST'])
 @app.route('/chat/ask', methods=['POST'])
 def ask():
-    question = request.json['question']
+    data = request.json
+    question = data['question']
+    system_prompt = data.get('system_prompt', "You are a helpful assistant.")
+
     logger.info(f"Received question: {question}")
     actual_question = f"{question}. Answer the question using HTML5 tags to improve formatting. Do not break the 3rd wall and explicitly mention the HTML5 tags."
-    
+
     retries = 5
     for i in range(retries):
         try:
             if OPENAI_API_KEY:
-                answer = get_openai_response(actual_question)
+                answer = get_openai_response(actual_question, system_prompt)
             else:
                 answer = get_claude_response(actual_question)
-            
+
             logger.info("API response received successfully")
             insert_question_answer(question, answer)
             return jsonify(question=question, answer=answer)
-            
+
         except (openai.RateLimitError, anthropic.RateLimitError) as e:
             logger.warning("Rate limit error (attempt {}/{}): {}".format(i + 1, retries, str(e)))
             if i < retries - 1:
