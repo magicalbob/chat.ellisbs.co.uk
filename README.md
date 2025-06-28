@@ -218,17 +218,15 @@ This project is licensed under the MIT License.
 
 ## Future Enhancements
 
-- **User Authentication**:
-  Add user authentication to store chat history per user.
-
-- **Advanced Retry Mechanism**:
-  Implement a more sophisticated retry mechanism with better error handling.
-
-- **Database Backend**:
-  Use a different database backend (e.g., PostgreSQL) for scalability.
-
-- **Rich Text Formatting**:
-  Add support for rich text formatting and images in API responses.
-
-- **Re-asking Questions**:
-  Add feature to allow the re-selection of previous questions for asking.
+* **Dynamic API Provider and Model Selection:**
+    * **Objective:** Allow users to dynamically switch between different API providers (ChatGPT, Claude, Gemini) and specific models (e.g., `gpt-4o`, `gemini-1.5-flash`) before sending a message. This will enable users to choose based on performance, cost, and desired capabilities.
+    * **Tasks:**
+        * Integrate the Gemini API into the backend.
+        * Add a UI component (e.g., dropdowns or radio buttons) for selecting the provider and model.
+        * Implement backend logic to route requests to the correct API based on user selection.
+        * **(Stretch Goal):** Implement a real-time cost estimation feature that calculates the expected cost of a query as the user types, based on the selected model and its token pricing.
+* **User Authentication:** Add user authentication to store chat history per user.
+* **Advanced Retry Mechanism:** Implement a more sophisticated retry mechanism with better error handling.
+* **Database Backend:** Use a different database backend (e.g., PostgreSQL) for scalability.
+* **Rich Text Formatting:** Add support for rich text formatting and images in API responses.
+* **Re-asking Questions:** Add a feature to allow the re-selection of previous questions for asking.
