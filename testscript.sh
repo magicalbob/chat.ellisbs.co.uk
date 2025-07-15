@@ -6,6 +6,7 @@ set -e  # Exit on any error
 pip install -r requirements.txt
 pip install pytest
 export OPENAI_API_KEY=dummy
+export CLAUDE_API_KEY=dummy
 
 # Run tests with coverage
 coverage run -m pytest --exitfirst --disable-warnings
