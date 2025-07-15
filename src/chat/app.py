@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = 'chat_history.db'
 
-app = Flask(__name__)
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+app = Flask(__name__, template_folder=template_dir)
 
 # API setup
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
