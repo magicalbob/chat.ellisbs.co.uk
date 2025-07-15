@@ -6,3 +6,4 @@ chat_history.db
 javascript-coverage
 node_modules
 package-lock.json
+.chunkwrap_state
