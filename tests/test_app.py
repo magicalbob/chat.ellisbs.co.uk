@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 import logging
 from http import HTTPStatus
-import app
-from app import insert_question_answer
+from chat import app
+from chat.app import insert_question_answer
 
 TEST_QUESTION = 'Test question'
 TEST_ANSWER = "Test response"
@@ -228,7 +228,7 @@ class TestApp(unittest.TestCase):
             if 'app' in sys.modules:
                 del sys.modules['app']
 
-    @patch('app.get_openai_response')
+    @patch('chat.app.get_openai_response')
     def test_ask_api_exception_handling(self, mock_get_response):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         mock_get_response.side_effect = Exception("Test exception")
@@ -251,7 +251,7 @@ class TestApp(unittest.TestCase):
         app.create_table()
         conn.cursor().execute.assert_called_once()
 
-    @patch('app.create_table')
+    @patch('chat.app.create_table')
     @patch('sqlite3.connect')
     def test_insert_question_answer_with_operational_error(self, mock_connect, mock_create_table):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
@@ -280,8 +280,8 @@ class TestApp(unittest.TestCase):
         # Commit should have been called once after a successful retry
         mock_conn.commit.assert_called_once()
 
-    @patch('app.insert_question_answer')  # Add this line
-    @patch('app.get_openai_response')
+    @patch('chat.app.insert_question_answer')  # Add this line
+    @patch('chat.app.get_openai_response')
     def test_ask_route_openai(self, mock_get_openai_response, mock_insert):  # Fix parameter order
         # Set up environment to use OpenAI
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
@@ -359,7 +359,7 @@ class TestApp(unittest.TestCase):
     def test_insert_question_answer(self):
         question = 'Sample question'
         answer = 'Sample answer'
-        with patch('app.sqlite3.connect') as mock_connect:
+        with patch('chat.app.sqlite3.connect') as mock_connect:
             mock_db = MagicMock()
             mock_connect.return_value = mock_db
             insert_question_answer(question, answer)
@@ -368,7 +368,7 @@ class TestApp(unittest.TestCase):
             mock_db.commit.assert_called_once()
             mock_db.close.assert_called_once()
 
-    @patch('sys.exit')
+    @patch('chat.sys.exit')
     def test_missing_environment_variables(self, mock_exit):
         os.environ.pop('OPENAI_API_KEY', None)
         os.environ.pop('CLAUDE_API_KEY', None)
@@ -448,7 +448,7 @@ class TestApp(unittest.TestCase):
             import app
         self.assertEqual(cm.exception.code, 1)
     
-    @patch('app.get_openai_response')
+    @patch('chat.app.get_openai_response')
     def test_ask_rate_limit_retry(self, mock_get_response):
         os.environ['OPENAI_API_KEY'] = 'test-openai-key'
         import app
