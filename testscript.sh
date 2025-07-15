@@ -4,6 +4,7 @@ set -e  # Exit on any error
 
 # Install dependencies
 pip install -r requirements.txt
+pip install pytest
 
 # Run tests with coverage
 coverage run -m pytest --exitfirst --disable-warnings
