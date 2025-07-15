@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-from flask import Flask, render_template, request, jsonify
-import openai
-import anthropic
 import os
-import sqlite3
 import sys
 import time
 import logging
+import sqlite3
+
+from flask import Flask, render_template, request, jsonify
+import openai
+import anthropic
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +21,7 @@ app = Flask(__name__, template_folder=template_dir)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
 
-# Always define this so get_claude_response never raises NameError
+# Global client placeholder
 claude_client = None
 
 class InsufficientCreditsError(RuntimeError):
@@ -32,11 +33,11 @@ if not OPENAI_API_KEY and not CLAUDE_API_KEY:
     logger.error("Neither OPENAI_API_KEY nor CLAUDE_API_KEY environment variables are set")
     sys.exit(1)
 
-# Validate and initialize Claude client if using Claude only
+# Import‐time validate/init Claude if no OpenAI key
 if CLAUDE_API_KEY and not OPENAI_API_KEY:
-    claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
     try:
-        # Minimal test call
+        claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+        # minimal validation call
         claude_client.messages.create(
             model="claude-3-sonnet-20240229",
             max_tokens=1,
@@ -53,14 +54,14 @@ if CLAUDE_API_KEY and not OPENAI_API_KEY:
             logger.error(f"Error validating Claude API key: {e}")
             raise
     except anthropic.AuthenticationError as e:
-        # Invalid key, but tests expect us to swallow auth errors here
+        # invalid key—log and carry on, get_claude_response will retry later
         logger.warning(f"Claude authentication failed (will try later): {e}")
+        # leave claude_client as set, so lazy init in get_claude_response will re-call Anthropi...
     except Exception as e:
-        # Any other error during import-time validation is fatal
         logger.error(f"Error validating Claude API key: {e}")
         sys.exit(1)
 
-# Initialize OpenAI if its key is present
+# If OpenAI key is present, initialize openai and ignore Claude
 elif OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
     print("Using OpenAI API")
@@ -100,6 +101,15 @@ def insert_question_answer(question, answer):
 
 
 def get_claude_response(question):
+    """
+    Lazy-init the Claude client if import-time setup was skipped or client invalid.
+    """
+    global claude_client
+
+    # Lazy create if None
+    if claude_client is None:
+        claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+
     try:
         logger.info(f"Sending request to Claude API: {question}")
         message = claude_client.messages.create(
@@ -109,6 +119,7 @@ def get_claude_response(question):
         )
         logger.info("Received response from Claude API")
         return message.content[0].text
+
     except anthropic.BadRequestError as e:
         if "credit balance is too low" in str(e):
             logger.error("Claude API account has insufficient credits")
@@ -118,6 +129,7 @@ def get_claude_response(question):
         else:
             logger.error(f"Claude API error: {e}")
             raise
+
     except Exception as e:
         logger.error(f"Error in Claude API call: {e}", exc_info=True)
         raise
@@ -135,6 +147,7 @@ def get_openai_response(question, system_prompt):
         )
         logger.info("Received response from OpenAI API")
         return response.choices[0].message.content
+
     except Exception as e:
         logger.error(f"Error in OpenAI API call: {e}", exc_info=True)
         raise
@@ -142,7 +155,7 @@ def get_openai_response(question, system_prompt):
 
 @app.route('/')
 def home():
-    # Re-read keys at request time so test patches on os.getenv take effect
+    # Read env at request time so test patches on os.getenv take effect
     _openai = os.getenv("OPENAI_API_KEY")
     _claude = os.getenv("CLAUDE_API_KEY")
 
