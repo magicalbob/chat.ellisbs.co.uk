@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Chat web app for interacting with ChatGPT or Claude APIs.
+Stores question/answer history in a local SQLite database.
+"""
+
 import os
 import sys
 import time
@@ -9,7 +14,7 @@ from flask import Flask, render_template, request, jsonify
 import openai
 import anthropic
 
-# Set up logging
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,23 +27,20 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
 
 # Global client placeholder
-claude_client = None
+CLAUDE_CLIENT = None
 
 class InsufficientCreditsError(RuntimeError):
     """Exception raised when the API account has insufficient credits."""
-    pass
 
-# Exit immediately if neither key is set
+
 if not OPENAI_API_KEY and not CLAUDE_API_KEY:
     logger.error("Neither OPENAI_API_KEY nor CLAUDE_API_KEY environment variables are set")
     sys.exit(1)
 
-# Import‐time validate/init Claude if no OpenAI key
 if CLAUDE_API_KEY and not OPENAI_API_KEY:
     try:
-        claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
-        # minimal validation call
-        claude_client.messages.create(
+        CLAUDE_CLIENT = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+        CLAUDE_CLIENT.messages.create(
             model="claude-3-sonnet-20240229",
             max_tokens=1,
             messages=[{"role": "user", "content": "test"}]
@@ -49,28 +51,25 @@ if CLAUDE_API_KEY and not OPENAI_API_KEY:
             logger.error("Claude API key is valid but account has insufficient credits")
             raise InsufficientCreditsError(
                 "Claude API account has insufficient credits - please check your billing status"
-            )
-        else:
-            logger.error(f"Error validating Claude API key: {e}")
-            raise
+            ) from e
+        logger.error("Error validating Claude API key: %s", e)
+        raise
     except anthropic.AuthenticationError as e:
-        # invalid key—log and carry on, get_claude_response will retry later
-        logger.warning(f"Claude authentication failed (will try later): {e}")
-        # leave claude_client as set, so lazy init in get_claude_response will re-call Anthropi...
+        logger.warning("Claude authentication failed (will try later): %s", e)
     except Exception as e:
-        logger.error(f"Error validating Claude API key: {e}")
+        logger.error("Error validating Claude API key: %s", e)
         sys.exit(1)
 
-# If OpenAI key is present, initialize openai and ignore Claude
 elif OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
     print("Using OpenAI API")
 
 
 def create_table():
+    """Create the chat_history table if it doesn't exist."""
     conn = sqlite3.connect(DB_NAME)
-    db_cursor = conn.cursor()
-    db_cursor.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             question TEXT NOT NULL,
@@ -83,16 +82,17 @@ def create_table():
 
 
 def insert_question_answer(question, answer):
+    """Insert a Q/A pair into the database, creating the table if needed."""
     conn = sqlite3.connect(DB_NAME)
-    db_cursor = conn.cursor()
+    cursor = conn.cursor()
     try:
-        db_cursor.execute(
+        cursor.execute(
             "INSERT INTO chat_history (question, answer) VALUES (?, ?)",
             (question, answer)
         )
     except sqlite3.OperationalError:
         create_table()
-        db_cursor.execute(
+        cursor.execute(
             "INSERT INTO chat_history (question, answer) VALUES (?, ?)",
             (question, answer)
         )
@@ -101,18 +101,14 @@ def insert_question_answer(question, answer):
 
 
 def get_claude_response(question):
-    """
-    Lazy-init the Claude client if import-time setup was skipped or client invalid.
-    """
-    global claude_client
-
-    # Lazy create if None
-    if claude_client is None:
-        claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+    """Get a response from Claude, lazy-initializing the client if needed."""
+    global CLAUDE_CLIENT  # necessary to support lazy init
+    if CLAUDE_CLIENT is None:
+        CLAUDE_CLIENT = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
     try:
-        logger.info(f"Sending request to Claude API: {question}")
-        message = claude_client.messages.create(
+        logger.info("Sending request to Claude API: %s", question)
+        message = CLAUDE_CLIENT.messages.create(
             model="claude-3-sonnet-20240229",
             messages=[{"role": "user", "content": question}],
             max_tokens=1024
@@ -125,19 +121,18 @@ def get_claude_response(question):
             logger.error("Claude API account has insufficient credits")
             raise ValueError(
                 "Claude API account has insufficient credits - please check your billing status"
-            )
-        else:
-            logger.error(f"Claude API error: {e}")
-            raise
-
+            ) from e
+        logger.error("Claude API error: %s", e)
+        raise
     except Exception as e:
-        logger.error(f"Error in Claude API call: {e}", exc_info=True)
+        logger.exception("Error in Claude API call")
         raise
 
 
 def get_openai_response(question, system_prompt):
+    """Get a response from OpenAI with a given system prompt."""
     try:
-        logger.info(f"Sending request to OpenAI API: {question}")
+        logger.info("Sending request to OpenAI API: %s", question)
         response = openai.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[
@@ -146,16 +141,15 @@ def get_openai_response(question, system_prompt):
             ],
         )
         logger.info("Received response from OpenAI API")
-        return response.choices[0].message.content
-
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error(f"Error in OpenAI API call: {e}", exc_info=True)
+        logger.exception("Error in OpenAI API call")
         raise
 
 
 @app.route('/')
 def home():
-    # Read env at request time so test patches on os.getenv take effect
+    """Render the homepage with model title."""
     _openai = os.getenv("OPENAI_API_KEY")
     _claude = os.getenv("CLAUDE_API_KEY")
 
@@ -172,6 +166,7 @@ def home():
 @app.route('/ask', methods=['POST'])
 @app.route('/chat/ask', methods=['POST'])
 def ask():
+    """Route handler for chat questions."""
     data = request.json
     if not data or 'question' not in data:
         return jsonify(error="Missing question parameter"), 400
@@ -179,14 +174,13 @@ def ask():
     question = data['question']
     system_prompt = data.get('system_prompt', "You are a helpful assistant.")
 
-    logger.info(f"Received question: {question}")
+    logger.info("Received question: %s", question)
     actual_question = (
         f"{question}. Answer the question using HTML5 tags to improve formatting. "
         "Do not break the 3rd wall and explicitly mention the HTML5 tags."
     )
 
-    retries = 5
-    for attempt in range(retries):
+    for attempt in range(5):
         try:
             if os.getenv("OPENAI_API_KEY"):
                 answer = get_openai_response(actual_question, system_prompt)
@@ -198,26 +192,25 @@ def ask():
             return jsonify(question=question, answer=answer)
 
         except (openai.RateLimitError, anthropic.RateLimitError) as e:
-            logger.warning(f"Rate limit error (attempt {attempt+1}/{retries}): {e}")
-            if attempt < retries - 1:
+            logger.warning("Rate limit error (attempt %d/5): %s", attempt + 1, e)
+            if attempt < 4:
                 time.sleep(10)
             else:
                 return jsonify(error="API is overloaded, please try again later."), 503
 
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            logger.exception("Unexpected error during response fetch")
             return jsonify(error=str(e)), 500
 
 
 @app.route('/chat_history')
 @app.route('/chat/chat_history')
 def chat_history():
+    """Render the full chat history from the database."""
     conn = sqlite3.connect(DB_NAME)
-    db_cursor = conn.cursor()
-    db_cursor.execute(
-        "SELECT question, answer, timestamp FROM chat_history ORDER BY id ASC"
-    )
-    records = db_cursor.fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT question, answer, timestamp FROM chat_history ORDER BY id ASC")
+    records = cursor.fetchall()
     conn.close()
 
     html = ["<html><body>"]
@@ -226,7 +219,6 @@ def chat_history():
         html.append(f"<p>{question}</p>")
         html.append("<p><strong>Answer:</strong></p>")
 
-        # Convert **bold** markers into <strong> tags
         while "**" in answer:
             answer = answer.replace("**", "<strong>", 1)
             answer = answer.replace("**", "</strong>", 1)
@@ -234,7 +226,6 @@ def chat_history():
         html.append(f"<p>{answer}</p>")
         html.append(f"<p><strong>Timestamp:</strong> {timestamp}</p>")
         html.append("<hr>")
-
     html.append("</body></html>")
     return "".join(html)
 
