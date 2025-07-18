@@ -3,7 +3,7 @@
 set -e  # Exit on any error
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e ".[dev]"
 pip install pytest
 export OPENAI_API_KEY=dummy
 export CLAUDE_API_KEY=dummy
