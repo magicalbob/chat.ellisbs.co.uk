@@ -1,11 +1,14 @@
 stages:
   - test
   - scan
+  - build_docker
 
 variables:
   SONAR_SCANNER_VERSION: 5.0.1.3006
   GIT_STRATEGY: clone  # Ensure full clone is used in all jobs
   GIT_DEPTH: 0         # Disable shallow clone for all jobs
+  IMAGE_NAME: docker.ellisbs.co.uk:7070/chat-app:latest
+  DOCKER_USERNAME: docker
 
 test_python_job:
   image: docker.ellisbs.co.uk:5190/ubuntu:24.04
@@ -46,3 +49,15 @@ scan_job:
   dependencies:
     - test_python_job
     - test_npm_job
+
+build_docker:
+  image: docker.ellisbs.co.uk:5190/docker:24
+  stage: build_docker
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: "unix:///root/run/docker-host.sock"
+  script:
+    - echo "192.168.0.2 docker.ellisbs.co.uk" >> /etc/hosts
+    - echo "$DOCKER_PASSWORD" | docker login docker.ellisbs.co.uk:7070 -u "$DOCKER_USERNAME" --password-stdin
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
