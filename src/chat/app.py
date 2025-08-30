@@ -41,7 +41,7 @@ if CLAUDE_API_KEY and not OPENAI_API_KEY:
     try:
         CLAUDE_CLIENT = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
         CLAUDE_CLIENT.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20240620",
             max_tokens=1,
             messages=[{"role": "user", "content": "test"}]
         )
@@ -109,7 +109,7 @@ def get_claude_response(question):
     try:
         logger.info("Sending request to Claude API: %s", question)
         message = CLAUDE_CLIENT.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20240620",
             messages=[{"role": "user", "content": question}],
             max_tokens=1024
         )
