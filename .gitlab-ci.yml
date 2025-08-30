@@ -83,5 +83,3 @@ deploy_chat:
     - wget -q http://192.168.0.2:48080/health || (echo "Deployment failed" && exit 1)
   dependencies:
     - build_docker
-  only:
-    - main
