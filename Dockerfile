@@ -1,5 +1,5 @@
 # Use a lightweight version of the official Python image
-FROM python:3.13-slim
+FROM docker.ellisbs.co.uk:5190/python:3.13-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
