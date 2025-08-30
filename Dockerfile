@@ -8,14 +8,11 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy requirements.txt first to leverage caching
-COPY requirements.txt .
-
-# Install the application dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
 # Copy the rest of the application code to the working directory
 COPY . .
+
+# Install the application dependencies
+RUN pip install --no-cache-dir -e .
 
 # Create the database and run the application on startup
 CMD ["python", "app.py"]
