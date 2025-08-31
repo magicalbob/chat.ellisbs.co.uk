@@ -69,15 +69,16 @@ deploy_chat:
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_HOST: "unix:///root/run/docker-host.sock"
+    CHAT_APP: "chat"
   rules:
     - if: '$deploy == "1"'
       when: on_success
     - when: never
   script:
     - echo "Deploying Chat app container..."
-    - docker stop chat-app || true
-    - docker rm chat-app || true
-    - docker run -d --name chat-app -p 48080:48080 --restart unless-stopped $IMAGE_NAME
+    - docker stop ${CHAT_APP} || true
+    - docker rm ${CHAT_APP} || true
+    - docker run -d --name ${CHAT_APP} -p 48080:48080 --restart unless-stopped $IMAGE_NAME
     - echo "Waiting for app to become available..."
     - sleep 5
     - wget -q http://192.168.0.2:48080/health || (echo "Deployment failed" && exit 1)
