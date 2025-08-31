@@ -10,12 +10,13 @@ WORKDIR /app
 
 # Copy the rest of the application code to the working directory
 COPY . .
+COPY src src
 
 # Install the application dependencies
 RUN pip install --no-cache-dir -e .
 
 # Create the database and run the application on startup
-CMD ["python", "app.py"]
+CMD ["python", "src/chat/app.py"]
 
 # Expose the port the app runs on
 EXPOSE 48080
