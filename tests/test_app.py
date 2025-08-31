@@ -446,5 +446,28 @@ class TestApp(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+
+    def test_health_ok(self):
+        os.environ['OPENAI_API_KEY'] = 'test-key'
+        from chat import app
+        client = app.app.test_client()
+        resp = client.get('/health')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertEqual(data["checks"]["database"], "ok")
+        self.assertEqual(data["checks"]["api_key"], "present")
+
+
+    def test_health_missing_key(self):
+        os.environ.pop('OPENAI_API_KEY', None)
+        os.environ.pop('CLAUDE_API_KEY', None)
+        from chat import app
+        client = app.app.test_client()
+        resp = client.get('/health')
+        self.assertEqual(resp.status_code, 500)
+        data = resp.get_json()
+        self.assertEqual(data["checks"]["api_key"], "missing")
+
+
 if __name__ == '__main__':
     unittest.main()

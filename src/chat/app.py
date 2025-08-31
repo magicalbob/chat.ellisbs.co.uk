@@ -407,6 +407,32 @@ def chat_history():
         )
 
 
+@app.route('/health', methods=['GET'])
+def health():
+    status = {"status": "ok", "checks": {}}
+    http_status = 200
+
+    # Check DB connectivity
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        conn.close()
+        status["checks"]["database"] = "ok"
+    except Exception as e:
+        status["checks"]["database"] = f"error: {e}"
+        http_status = 500
+
+    # Check API key presence
+    if os.getenv("OPENAI_API_KEY") or os.getenv("CLAUDE_API_KEY"):
+        status["checks"]["api_key"] = "present"
+    else:
+        status["checks"]["api_key"] = "missing"
+        http_status = 500
+
+    return jsonify(status), http_status
+
+
 if __name__ == "__main__":
     create_table()
     USE_DEBUG = os.getenv("USE_DEBUG", "False").lower() == "true"
