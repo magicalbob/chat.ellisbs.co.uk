@@ -17,14 +17,14 @@
 
     #system-prompt-input {
         width: 100%;
-        height: 100px; /* Adjust height as needed */
-        resize: vertical; /* Allow vertical resizing */
+        height: 200px; /* Larger to show default contract */
+        resize: vertical;
     }
 
     #question-input {
         width: 100%;
-        height: 100px; /* Adjust height as needed */
-        resize: vertical; /* Allow vertical resizing */
+        height: 100px;
+        resize: vertical;
     }
 
     #chat-history {
@@ -48,11 +48,8 @@
             url: "/chat/chat_history",
             type: "get",
             success: function(response) {
-                // Update the chat history section
                 var chatHistoryElement = $("#chat-history");
                 chatHistoryElement.html(response);
-
-                // Scroll to the bottom of the chat history
                 chatHistoryElement.scrollTop(chatHistoryElement[0].scrollHeight);
             },
             error: function(jqXHR, textStatus, errorThrown) {
@@ -69,7 +66,6 @@
         var systemPrompt = systemPromptInput.val().trim();
     
         if (question !== "") {
-            // Disable the input and button during the API request
             questionInput.prop("disabled", true);
             systemPromptInput.prop("disabled", true);
             $("#ask-button").prop("disabled", true);
@@ -79,18 +75,15 @@
                 type: "post",
                 data: JSON.stringify({ 
                     question: question,
-                    system_prompt: systemPrompt // Send system prompt
+                    system_prompt: systemPrompt
                 }),
                 contentType: "application/json",
                 success: function(response) {
-                    // Clear the input field and enable it and the button
                     questionInput.val("");
-                    systemPromptInput.val("You are a helpful assistant."); // Reset system prompt to default
+                    // Do NOT reset systemPromptInput — user controls it now
                     questionInput.prop("disabled", false);
                     systemPromptInput.prop("disabled", false);
                     $("#ask-button").prop("disabled", false);
-    
-                    // Update the chat history after asking the question
                     updateChatHistory();
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -100,34 +93,49 @@
         }
     }
 
-    // Function to initialize the app
     function initializeApp() {
-        // Update the chat history initially
         updateChatHistory();
 
-        // Add event listener to the "Ask" button
         $("#ask-button").click(askQuestion);
 
-        // Add event listener to the question input field (textarea)
         $("#question-input").keypress(function(event) {
-            if (event.which === 13 && event.shiftKey) { // Enter key with shift for new line
-                return true;
-            } else if (event.which === 13) { // Enter key without shift
+            if (event.which === 13 && event.shiftKey) {
+                return true; // newline
+            } else if (event.which === 13) {
                 askQuestion();
-                return false;
+                return false; // prevent newline
             }
         });
     }
 
-    // Initialize the app when the DOM is ready
     $(document).ready(initializeApp);
     </script>
 </head>
 <body>
     <h1>{{ title }}</h1>
-    <textarea id="system-prompt-input" placeholder="Enter system prompt..." rows="2">You are a helpful assistant.</textarea>
+
+    <textarea id="system-prompt-input" placeholder="Enter system prompt..." rows="10">You are a helpful assistant. In all your responses, please focus on substance over praise. Skip unnecessary compliments, engage critically with my ideas, question my assumptions, identify my biases, and offer counterpoints when relevant. Don’t shy away from disagreement, and ensure that any agreements you have are grounded in reason and evidence.
+
+Formatting rules:
+- Write answers in GitHub-flavored Markdown (GFM).
+- Use headings, short paragraphs, bullet lists, and code fences where helpful.
+- Prefer Markdown tables over HTML tables.
+- Do NOT mention that you are using Markdown or that you are following formatting rules.
+- If the user asks for raw HTML, you may use HTML; otherwise stick to Markdown.
+- When including code, use fenced blocks with an accurate language tag.
+- Keep links as plain Markdown links; do not auto-embed scripts.
+
+Response contract (important):
+Return a JSON object with these keys:
+- "format": one of ["markdown", "html", "text"]  (default: "markdown")
+- "content": the answer body in that format
+- "brief": a ≤100-character plain-text summary/title of the answer (optional)
+
+Do not include any additional keys. Do not wrap the JSON in backticks.</textarea>
+
     <textarea id="question-input" placeholder="Ask a question..." rows="4"></textarea>
     <button id="ask-button">Ask</button>
+
     <div id="chat-history"></div>
 </body>
 </html>
