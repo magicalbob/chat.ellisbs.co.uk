@@ -218,17 +218,25 @@ This project is licensed under the MIT License.
 
 ## Future Enhancements
 
-- **User Authentication**:
-  Add user authentication to store chat history per user.
+* **Dynamic API Provider and Model Selection:**
+    * **Objective:** Allow users to dynamically switch between different API providers (ChatGPT, Claude, Gemini) and specific models (e.g., `gpt-4o`, `gemini-1.5-flash`) before sending a message. This will enable users to choose based on performance, cost, and desired capabilities.
+    * **Tasks:**
+        * Integrate the Gemini API into the backend.
+        * Add a UI component (e.g., dropdowns or radio buttons) for selecting the provider and model.
+        * Implement backend logic to route requests to the correct API based on user selection.
+        * **(Stretch Goal):** Implement a real-time cost estimation feature that calculates the expected cost of a query as the user types, based on the selected model and its token pricing.
+* **Exploratory: Integration with GitHub Copilot:**
+    * **Objective:** Investigate the feasibility of integrating GitHub Copilot's chat capabilities into the application, despite the lack of a public conversational API.
+    * **Exploration Strategies:**
+        * **Leverage the `gh` CLI:** Explore if it's possible to interface with the `gh copilot` commands programmatically from the backend to send prompts and capture responses. This would be a non-standard, potentially brittle approach, but it could serve as a proof-of-concept.
+        * **Investigate Enterprise APIs:** Research the GitHub Copilot Enterprise APIs. While these are primarily for monitoring usage and managing seats, there might be endpoints or future plans for more conversational features.
+        * **Analyze Third-Party Proxies/Tools:** Look into community-built proxy servers or tools that have reverse-engineered the Copilot API (as seen in some developer community discussions). This is a high-risk, non-supported approach but is a key part of an exploratory phase.
+        * **Explore VS Code Integration:** Consider if a local service running alongside a VS Code instance could be used to send prompts to Copilot Chat and pipe the responses back to the web app, though this would be highly complex and not scalable.
+    * **Expected Outcome:** A detailed report on the feasibility and potential implementation paths, even if a full integration isn't practical. This could lead to a future feature to assist with code-related questions.
+* **User Authentication:** Add user authentication to store chat history per user.
+* **Advanced Retry Mechanism:** Implement a more sophisticated retry mechanism with better error handling.
+* **Database Backend:** Use a different database backend (e.g., PostgreSQL) for scalability.
+* **Rich Text Formatting:** Add support for rich text formatting and images in API responses.
+* **Re-asking Questions:** Add a feature to allow the re-selection of previous questions for asking.
 
-- **Advanced Retry Mechanism**:
-  Implement a more sophisticated retry mechanism with better error handling.
-
-- **Database Backend**:
-  Use a different database backend (e.g., PostgreSQL) for scalability.
-
-- **Rich Text Formatting**:
-  Add support for rich text formatting and images in API responses.
-
-- **Re-asking Questions**:
-  Add feature to allow the re-selection of previous questions for asking.
+---

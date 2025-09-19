@@ -13,10 +13,10 @@
   "devDependencies": {
     "@babel/core": "^7.22.11",
     "@babel/preset-env": "^7.22.11",
-    "@jest/globals": "^29.7.0",
-    "babel-jest": "^29.7.0",
+    "@jest/globals": "^30.0.0",
+    "babel-jest": "^30.0.0",
     "jest": "^30.0.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^30.0.0"
   },
   "jest": {
     "testEnvironment": "jsdom",
