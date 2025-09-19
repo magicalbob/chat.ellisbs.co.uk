@@ -25,6 +25,6 @@
     "collectCoverageFrom": ["static/script.js"],
     "coverageReporters": ["text", "lcov"]
   },
-  "author": "Your Name",
+  "author": "Ian Ellis",
   "license": "MIT"
 }
