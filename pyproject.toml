@@ -33,7 +33,7 @@ dependencies = [
     "jsonify==0.5",
     "MarkupSafe==3.0.2",
     "openai==1.97.0",
-    "pydantic==2.11.7",
+    "pydantic==2.11.9",
     "pydantic_core==2.33.2",
     "requests==2.32.4",
     "setuptools==80.9.0",
