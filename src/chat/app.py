@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-Chat web app for interacting with ChatGPT or Claude APIs.
+Chat web app for interacting with Google Gemini.
 Stores question/answer history in a local SQLite database.
 
-This version:
-- Robust contract parsing (format/content/brief) but DB stores only `content`.
-- `/ask` returns {question, answer} (back-compat with tests) and augments the
-  OpenAI user question with the legacy HTML instruction the tests expect.
-- `/chat_history` server-renders with a tiny HTML allow-list (safe, no attrs),
-  converts **bold**, and handles full HTML documents by extracting <body>…</body>.
+- Provider: Gemini only (google-generativeai)
+- `/ask` returns {question, answer} for backward compatibility with your UI/tests
+- Robust contract parsing (format/content/brief) but DB stores only `content`
+- `/chat_history` server-renders with a small HTML allow-list (attributes stripped)
 """
 
 import os
@@ -22,8 +20,8 @@ import re
 
 from flask import Flask, render_template, request, jsonify
 
-import openai
-import anthropic
+# --- Gemini client ---
+import google.generativeai as genai
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -33,18 +31,7 @@ DB_NAME = 'chat_history.db'
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
-# API setup
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
-
-# Global client placeholder
-CLAUDE_CLIENT = None
-
-
-class InsufficientCreditsError(RuntimeError):
-    """Exception raised when the API account has insufficient credits."""
-
-
+# Configuration / defaults
 DEFAULT_SYSTEM_PROMPT = os.getenv(
     "DEFAULT_SYSTEM_PROMPT",
     "In all your responses, please focus on substance over praise. "
@@ -52,40 +39,20 @@ DEFAULT_SYSTEM_PROMPT = os.getenv(
     "identify my biases, and offer counterpoints when relevant. Don’t shy away from disagreement, "
     "and ensure that any agreements you have are grounded in reason and evidence."
 )
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
-# Key selection (tests rely on this behavior)
-if not OPENAI_API_KEY and not CLAUDE_API_KEY:
-    logger.error("Neither OPENAI_API_KEY nor CLAUDE_API_KEY environment variables are set")
+# Require a Gemini key at startup
+if not GEMINI_API_KEY:
+    logger.error("GEMINI_API_KEY is not set")
     sys.exit(1)
 
-if CLAUDE_API_KEY and not OPENAI_API_KEY:
-    try:
-        CLAUDE_CLIENT = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
-        # Lightweight credentials check
-        CLAUDE_CLIENT.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1,
-            system="credential check",
-            messages=[{"role": "user", "content": "ping"}]
-        )
-        print("Using Claude API - credentials verified")
-    except anthropic.BadRequestError as e:
-        if "credit balance is too low" in str(e):
-            logger.error("Claude API key is valid but account has insufficient credits")
-            raise InsufficientCreditsError(
-                "Claude API account has insufficient credits - please check your billing status"
-            ) from e
-        logger.error("Error validating Claude API key: %s", e)
-        raise
-    except anthropic.AuthenticationError as e:
-        logger.warning("Claude authentication failed (will try later): %s", e)
-    except Exception as e:
-        logger.error("Error validating Claude API key: %s", e)
-        sys.exit(1)
-elif OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
-    print("Using OpenAI API")
+# Configure client (one-time)
+genai.configure(api_key=GEMINI_API_KEY)
+print("Using Gemini API")
 
+
+# ------------------- DB helpers -------------------
 
 def create_table():
     """Create the chat_history table if it doesn't exist."""
@@ -122,53 +89,34 @@ def insert_question_answer(question, answer):
     conn.close()
 
 
-def get_claude_response(question, system_prompt=None):
-    """Get a response from Claude using the client-supplied system prompt."""
-    global CLAUDE_CLIENT  # necessary to support lazy init
-    if CLAUDE_CLIENT is None:
-        CLAUDE_CLIENT = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+# ------------------- Provider call -------------------
 
+def get_gemini_response(question: str, system_prompt: str | None = None) -> str:
+    """
+    Query Gemini and return plain text.
+    - Uses fast default model; set GEMINI_MODEL env to override (e.g. gemini-1.5-pro, gemini-2.0-flash).
+    - If a system prompt is provided, send it as system_instruction.
+    """
     try:
-        logger.info("Sending request to Claude API: %s", question)
-        message = CLAUDE_CLIENT.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            system=system_prompt or DEFAULT_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": question}],
-            max_tokens=1024,
-            temperature=0.2,
-        )
-        logger.info("Received response from Claude API")
-        return message.content[0].text  # expect first to be text
+        if system_prompt:
+            model = genai.GenerativeModel(GEMINI_MODEL, system_instruction=system_prompt)
+        else:
+            # If no explicit system prompt was given, you may choose to apply the default here.
+            # Using DEFAULT_SYSTEM_PROMPT as system_instruction keeps behavior consistent.
+            model = genai.GenerativeModel(GEMINI_MODEL, system_instruction=DEFAULT_SYSTEM_PROMPT)
 
-    except anthropic.BadRequestError as e:
-        if "credit balance is too low" in str(e):
-            logger.error("Claude API account has insufficient credits")
-            raise ValueError(
-                "Claude API account has insufficient credits - please check your billing status"
-            ) from e
-        logger.error("Claude API error: %s", e)
-        raise
+        logger.info("Sending request to Gemini: %s", question)
+        resp = model.generate_content(question)
+
+        text = (getattr(resp, "text", None) or "").strip()
+        if not text:
+            # Try to surface reason if blocked
+            reason = getattr(resp, "prompt_feedback", None)
+            raise RuntimeError(f"Empty response from Gemini. Feedback: {reason}")
+        logger.info("Received response from Gemini")
+        return text
     except Exception:
-        logger.exception("Error in Claude API call")
-        raise
-
-
-def get_openai_response(question, system_prompt=None):
-    """Get a response from OpenAI using the client-supplied system prompt."""
-    try:
-        logger.info("Sending request to OpenAI API: %s", question)
-        response = openai.chat.completions.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": system_prompt or DEFAULT_SYSTEM_PROMPT},
-                {"role": "user", "content": question}
-            ],
-            temperature=0.2,
-        )
-        logger.info("Received response from OpenAI API")
-        return response.choices[0].message.content.strip()
-    except Exception:
-        logger.exception("Error in OpenAI API call")
+        logger.exception("Error in Gemini API call")
         raise
 
 
@@ -249,67 +197,7 @@ def parse_response_contract(raw: str) -> tuple[str, str, str]:
     return ("markdown", raw, "")
 
 
-@app.route('/')
-def home():
-    """Render the homepage with model title."""
-    _openai = os.getenv("OPENAI_API_KEY")
-    _claude = os.getenv("CLAUDE_API_KEY")
-
-    if _openai:
-        title = "Chat with ChatGPT"
-    elif _claude:
-        title = "Chat with Claude"
-    else:
-        title = "Chat with No Model Available"
-
-    return render_template('index.html', title=title)
-
-
-@app.route('/ask', methods=['POST'])
-@app.route('/chat/ask', methods=['POST'])
-def ask():
-    """Route handler for chat questions; returns legacy JSON for compatibility."""
-    data = request.get_json(silent=True)  # tolerate invalid JSON
-    if not data or 'question' not in data:
-        return jsonify(error="Missing question parameter"), 400
-
-    question = data['question']
-    system_prompt = (data.get('system_prompt') or "").strip()
-    logger.info("Received question: %s", question)
-
-    for attempt in range(5):
-        try:
-            if os.getenv("OPENAI_API_KEY"):
-                # Back-compat: tests expect we augment the question with HTML instructions.
-                augmented = (
-                    f"{question}. "
-                    "Answer the question using HTML5 tags to improve formatting. "
-                    "Do not break the 3rd wall and explicitly mention the HTML5 tags."
-                )
-                raw = get_openai_response(augmented, system_prompt)
-            else:
-                raw = get_claude_response(question, system_prompt)
-
-            fmt, content, brief = parse_response_contract(raw)
-
-            # Store only the content (keeps schema unchanged)
-            insert_question_answer(question, content)
-
-            # Back-compat return shape for tests
-            return jsonify(question=question, answer=content), 200
-
-        except (getattr(openai, "RateLimitError", Exception),
-                getattr(anthropic, "RateLimitError", Exception)) as e:
-            logger.warning("Rate limit error (attempt %d/5): %s", attempt + 1, e)
-            if attempt < 4:
-                time.sleep(2 ** attempt)  # simple exponential backoff
-                continue
-            return jsonify(error="API is overloaded, please try again later."), 503
-
-        except Exception as e:
-            logger.exception("Unexpected error during response fetch")
-            return jsonify(error=str(e)), 500
-
+# ------------------- Rendering helpers -------------------
 
 def _render_answer_html(ans: str) -> str:
     """
@@ -330,8 +218,7 @@ def _render_answer_html(ans: str) -> str:
     if body_match:
         s = body_match.group(1)
     else:
-        # If there is a <!DOCTYPE …> wrapper or <html>…</html>, drop those wrappers
-        # by keeping their inner content if available.
+        # Drop <html>…</html> wrapper if present
         html_match = re.search(r"&lt;html[^&]*&gt;(.*?)&lt;/html&gt;", s, flags=re.IGNORECASE | re.DOTALL)
         if html_match:
             s = html_match.group(1)
@@ -355,12 +242,57 @@ def _render_answer_html(ans: str) -> str:
     # 3) Convert Markdown-style **bold** to <strong>bold</strong>
     s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
 
-    # 4) Any remaining '**' (unmatched) become an opening <strong> (quirky test expectation)
+    # 4) Any remaining '**' (unmatched) become an opening <strong> (quirky legacy expectation)
     s = s.replace("**", "<strong>")
 
     # 5) Preserve newlines with <br>
     s = s.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
     return s
+
+
+# ------------------- Routes -------------------
+
+@app.route('/')
+def home():
+    """Render the homepage with model title."""
+    title = "Chat with Gemini"
+    return render_template('index.html', title=title)
+
+
+@app.route('/ask', methods=['POST'])
+@app.route('/chat/ask', methods=['POST'])
+def ask():
+    """Route handler for chat questions; returns legacy JSON for compatibility."""
+    data = request.get_json(silent=True)  # tolerate invalid JSON
+    if not data or 'question' not in data:
+        return jsonify(error="Missing question parameter"), 400
+
+    question = data['question']
+    system_prompt = (data.get('system_prompt') or "").strip()
+    logger.info("Received question: %s", question)
+
+    for attempt in range(5):
+        try:
+            # For Gemini we do not force HTML instructions; your renderer handles Markdown/HTML safely.
+            raw = get_gemini_response(question, system_prompt)
+            fmt, content, brief = parse_response_contract(raw)
+
+            # Store only the content (keeps schema unchanged)
+            insert_question_answer(question, content)
+
+            # Back-compat return shape
+            return jsonify(question=question, answer=content), 200
+
+        except Exception as e:
+            # Coarse rate-limit/backoff detection by message
+            msg = str(e)
+            is_rate = ("429" in msg) or ("ResourceExhausted" in msg) or ("rate" in msg.lower()) or ("quota" in msg.lower())
+            if is_rate and attempt < 4:
+                logger.warning("Rate/quota error (attempt %d/5): %s", attempt + 1, e)
+                time.sleep(2 ** attempt)  # simple exponential backoff
+                continue
+            logger.exception("Unexpected error during response fetch")
+            return jsonify(error=str(e)), (503 if is_rate else 500)
 
 
 @app.route('/chat_history')
@@ -424,7 +356,7 @@ def health():
         http_status = 500
 
     # Check API key presence
-    if os.getenv("OPENAI_API_KEY") or os.getenv("CLAUDE_API_KEY"):
+    if os.getenv("GEMINI_API_KEY"):
         status["checks"]["api_key"] = "present"
     else:
         status["checks"]["api_key"] = "missing"
