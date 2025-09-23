@@ -54,6 +54,8 @@ scan_job:
 build_docker:
   image: docker.ellisbs.co.uk:5190/docker:24
   stage: build_docker
+  tags:
+    - linux
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_HOST: "unix:///root/run/docker-host.sock"
@@ -66,6 +68,8 @@ build_docker:
 deploy_chat:
   image: docker.ellisbs.co.uk:5190/docker:24
   stage: deploy
+  tags:
+    - linux
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
     DOCKER_HOST: "unix:///root/run/docker-host.sock"
