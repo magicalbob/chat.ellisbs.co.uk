@@ -82,7 +82,7 @@ deploy_chat:
     - echo "Deploying Chat app container..."
     - docker stop ${CHAT_APP} || true
     - docker rm ${CHAT_APP} || true
-    - docker run -d --name ${CHAT_APP} -e OPENAI_API_KEY=${OPENAI_API_KEY} -p 48080:48080 --restart unless-stopped $IMAGE_NAME
+    - docker run -d --name ${CHAT_APP} -e GEMINI_API_KEY=${GEMINI_API_KEY} -p 48080:48080 --restart unless-stopped $IMAGE_NAME
     - echo "Waiting for app to become available..."
     - sleep 5
     - wget -q http://192.168.0.2:48080/health || (echo "Deployment failed" && exit 1)
