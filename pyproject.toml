@@ -32,7 +32,7 @@ dependencies = [
     "jiter==0.10.0",
     "jsonify==0.5",
     "MarkupSafe==3.0.2",
-    "openai==1.97.0",
+    "openai==1.109.1",
     "pydantic==2.11.7",
     "pydantic_core==2.33.2",
     "requests==2.32.4",
