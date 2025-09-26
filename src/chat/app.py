@@ -120,14 +120,33 @@ def get_gemini_response(question: str, system_prompt: str | None = None) -> str:
         raise
 
 
-# ---------- Robust JSON contract parsing helpers ----------
-
-_CODEFENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
+# ---------- Robust JSON contract parsing helpers (regex-free for large spans) ----------
 
 def _strip_codefence(s: str) -> str:
-    """Remove surrounding ``` or ```json fences if present."""
-    m = _CODEFENCE_RE.match(s.strip())
-    return m.group(1) if m else s
+    """
+    Remove surrounding ``` or ```json fences if present, using linear string ops (no regex).
+    Accepts:
+      ```json\n<payload>\n```
+      ```\n<payload>\n```
+    """
+    t = s.strip()
+    if not t.startswith("```"):
+        return s
+    lines = t.splitlines()
+    if not lines:
+        return s
+    first = lines[0].strip()
+    if not first.startswith("```"):
+        return s
+    # Only treat as a code fence if the last line is a closing fence
+    if lines[-1].strip() != "```":
+        return s
+    lang = first[3:].strip().lower()
+    if lang in ("", "json"):
+        inner = "\n".join(lines[1:-1])
+        return inner
+    return s
+
 
 def _extract_first_json_object(s: str) -> str | None:
     """
@@ -147,6 +166,7 @@ def _extract_first_json_object(s: str) -> str | None:
             except Exception:
                 continue
     return None
+
 
 def parse_response_contract(raw: str) -> tuple[str, str, str]:
     """
@@ -197,6 +217,34 @@ def parse_response_contract(raw: str) -> tuple[str, str, str]:
     return ("markdown", raw, "")
 
 
+# ------------------- small HTML helpers (regex-free for large spans) -------------------
+
+def _extract_body_or_html_inner(escaped: str) -> str:
+    """
+    Given fully escaped HTML string (e.g., '&lt;body&gt;...&lt;/body&gt;'),
+    return inner content of <body>...</body> if present; otherwise inner of
+    <html>...</html>; otherwise return as-is. Linear, regex-free.
+    """
+    low = escaped.lower()
+    # Try <body ...> ... </body>
+    start = low.find("&lt;body")
+    if start != -1:
+        gt = low.find("&gt;", start)
+        if gt != -1:
+            end = low.find("&lt;/body&gt;", gt)
+            if end != -1:
+                return escaped[gt + len("&gt;"): end]
+    # Fall back to <html ...> ... </html>
+    start = low.find("&lt;html")
+    if start != -1:
+        gt = low.find("&gt;", start)
+        if gt != -1:
+            end = low.find("&lt;/html&gt;", gt)
+            if end != -1:
+                return escaped[gt + len("&gt;"): end]
+    return escaped
+
+
 # ------------------- Rendering helpers -------------------
 
 def _render_answer_html(ans: str) -> str:
@@ -214,14 +262,7 @@ def _render_answer_html(ans: str) -> str:
     s = html.escape(ans, quote=True)
 
     # 1) If a full HTML document is present, grab the body inner HTML (still escaped)
-    body_match = re.search(r"&lt;body[^&]*&gt;(.*?)&lt;/body&gt;", s, flags=re.IGNORECASE | re.DOTALL)
-    if body_match:
-        s = body_match.group(1)
-    else:
-        # Drop <html>…</html> wrapper if present
-        html_match = re.search(r"&lt;html[^&]*&gt;(.*?)&lt;/html&gt;", s, flags=re.IGNORECASE | re.DOTALL)
-        if html_match:
-            s = html_match.group(1)
+    s = _extract_body_or_html_inner(s)
 
     # 2) Allow-list of harmless tags; attributes are stripped.
     allowed = [
