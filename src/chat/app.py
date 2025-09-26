@@ -275,7 +275,7 @@ def ask():
         try:
             # For Gemini we do not force HTML instructions; your renderer handles Markdown/HTML safely.
             raw = get_gemini_response(question, system_prompt)
-            _, content, brief = parse_response_contract(raw)
+            _, content, _ = parse_response_contract(raw)
 
             # Store only the content (keeps schema unchanged)
             insert_question_answer(question, content)
