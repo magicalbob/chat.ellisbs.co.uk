@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+import os
+import sys
+
+# Set environment variables BEFORE importing the app
+os.environ.setdefault('OPENAI_API_KEY', 'test-key-openai')
+os.environ.setdefault('ANTHROPIC_API_KEY', 'test-key-anthropic')
+os.environ.setdefault('GEMINI_API_KEY', 'test-key-gemini')
+# Add any other environment variables your app.py checks for
+
+import pytest
+from chat import app
+
 import unittest
 from unittest.mock import patch, MagicMock
 import os
