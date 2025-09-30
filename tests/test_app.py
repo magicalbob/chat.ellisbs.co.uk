@@ -305,9 +305,14 @@ class TestApp(unittest.TestCase):
     @patch('chat.app.get_gemini_response')
     def test_ask_generic_error_500(self, mock_get):
         mock_get.side_effect = Exception("boom")
-        client = app.app.test_client()
-        resp = client.post('/ask', json={'question': 'Q'})
-        self.assertEqual(resp.status_code, 500)
+        with patch('time.sleep') as mock_sleep:
+            # Force fresh import so mock is applied
+            if 'chat.app' in sys.modules:
+                del sys.modules['chat.app']
+            from chat import app as appmod
+            client = appmod.app.test_client()
+            resp = client.post('/ask', json={'question': 'Q'})
+            self.assertEqual(resp.status_code, 500)
 
     @patch('chat.app.get_gemini_response')
     def test_ask_rate_limit_exhausted_503(self, mock_get):
