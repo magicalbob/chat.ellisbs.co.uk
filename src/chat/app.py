@@ -40,7 +40,7 @@ DEFAULT_SYSTEM_PROMPT = os.getenv(
     "and ensure that any agreements you have are grounded in reason and evidence."
 )
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Require a Gemini key at startup
 if not GEMINI_API_KEY:
