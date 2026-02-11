@@ -31,7 +31,7 @@ dependencies = [
   "itsdangerous==2.2.0",
   "Jinja2==3.1.6",
   "jsonify==0.5",
-  "MarkupSafe==3.0.2",
+  "MarkupSafe==3.0.3",
   "pydantic==2.11.7",
   "pydantic_core==2.33.2",
   "requests==2.32.4",
